@@ -39,19 +39,31 @@ pv_adhoc_charge_handler:
           {% endif %}
         desired_mode: >-
           {{ 'Force_3' if (adhoc_mode == 'Maximale Ladeleistung' and target_power > 0) or target_power >= 4000 else 'Force_1' }}
+        starting_session: "{{ force_state != 'Neutral' }}"
+        base_limit: >
+          {% if target_power >= 4000 %}
+            {% set current = (target_power / 690) | round(0, 'floor') %}
+          {% else %}
+            {% set current = (target_power / 230) | round(0, 'floor') %}
+          {% endif %}
+          {{ [6, [current, adhoc_max_limit] | min] | max }}
         desired_limit: >
           {% if adhoc_mode == 'Maximale Ladeleistung' and target_power > 0 %}
             {{ adhoc_max_limit }}
-          {% elif target_power >= 4000 %}
-            {% set current = (target_power / 690) | round(0, 'ceil') %}
-            {{ [6, [current, 16] | min] | max }}
+          {% elif starting_session %}
+            {{ base_limit }}
+          {% elif not limit_stable %}
+            {{ current_limit }}
+          {% elif base_limit > current_limit %}
+            {{ [current_limit + 2, base_limit, adhoc_max_limit] | min }}
+          {% elif base_limit < current_limit %}
+            {{ [current_limit - 2, base_limit, 6] | max }}
           {% else %}
-            {% set current = (target_power / 230) | round(0, 'ceil') %}
-            {{ [6, [current, 16] | min] | max }}
+            {{ current_limit }}
           {% endif %}
         desired_force_state: "{{ 'Neutral' if target_power > 0 else 'Off' }}"
         needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
-        can_update: "{{ force_state in ['Off', 'Neutral'] or (mode_stable and limit_stable) }}"
+        can_update: "{{ starting_session or (mode_stable and limit_stable) }}"
         charger_should_charge: "{{ target_power > 0 and (adhoc_mode in ['Nur PV-Überschuss', 'Maximale Ladeleistung', 'Auto']) }}"
     - choose:
         - conditions:
