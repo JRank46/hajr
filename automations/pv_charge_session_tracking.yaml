@@ -1,0 +1,19 @@
+- alias: 'PV Ladesitzung Startwert erfassen'
+  description: 'Speichert Fahrzeug-SOC und Wallbox-Energie beim tatsächlichen Start einer Ladesitzung.'
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.go_echarger_325099_power_total
+      above: 100
+  condition: []
+  action:
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.charge_session_start_soc
+      data:
+        value: "{{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}"
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.charge_session_start_energy
+      data:
+        value: "{{ states('sensor.go_echarger_325099_energy_charged') | float(0) }}"
+  mode: single

@@ -32,6 +32,8 @@ except ImportError:
     paramiko = None
 
 FILES = [
+    'automations/home_automations.yaml',
+    'automations/pv_charge_session_tracking.yaml',
     'automations/pv_charging_schedule.yaml',
     'scripts/pv_daily_charge_handler.yaml',
     'scripts/pv_adhoc_charge_handler.yaml',

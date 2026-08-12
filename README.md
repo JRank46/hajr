@@ -5,7 +5,7 @@ Dieses Repo enthält ein Beispiel für die Umsetzung der Spezifikation "PV Über
 ## Ziel
 
 - Lade das E-Auto mit möglichst viel PV-Strom
-- Berücksichtige Tagesplan, Adhoc-Abfahrtszeit und Ziel-SOC
+- Berücksichtige Tagesplan sowie Adhoc-Ziel-SOC
 - Zeige Status und Steuerung in einer eigenen Lovelace-Ansicht
 - Nutze YAML-Automationen mit Home Assistant Helpern
 
@@ -40,12 +40,12 @@ hajr/
 - Anzeige: SOC Auto, Ladeleistung, Lade-Modus, Ladestrom, PV-Leistung, SOC Homespeicher
 - Bedienung: tägliches Laden ein/aus, Adhoc Laden ein/aus, Adhoc Lade-Modus
 - Tagesplan: Wochentage mit Startzeit und Ziel-SOC
-- Adhoc: Abfahrtszeit, SOC-Ziel und Ladeoption
+- Adhoc: SOC-Ziel und Ladeoption
 - Prognose: erwartetes SOC bei PV-Überschuss und bei maximaler Ladeleistung
 
 ### Logik
 - Tägliche Ladeaufgabe startet am definierten Wochentag und Zeitpunkt
-- Adhoc-Ladung prüft Abfahrtszeit und Ladeoption
+- Adhoc-Ladung läuft bis zum Ziel-SOC mit PV-Überschuss oder maximaler Ladeleistung
 - Wenn „Nur PV-Überschuss“ gewählt ist, wird nur bei genügend PV-Leistung geladen
 - Bei „Maximale Ladeleistung“ wird die Wallbox mit dem aktuellen Limit betrieben
 

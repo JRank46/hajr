@@ -2,31 +2,31 @@ daily_charge_time_monday:
   name: Ladezeit Montag
   has_date: false
   has_time: true
-  initial: "07:00:00"
+  initial: "06:00:00"
 
 daily_charge_time_tuesday:
   name: Ladezeit Dienstag
   has_date: false
   has_time: true
-  initial: "07:00:00"
+  initial: "06:00:00"
 
 daily_charge_time_wednesday:
   name: Ladezeit Mittwoch
   has_date: false
   has_time: true
-  initial: "07:00:00"
+  initial: "06:00:00"
 
 daily_charge_time_thursday:
   name: Ladezeit Donnerstag
   has_date: false
   has_time: true
-  initial: "07:00:00"
+  initial: "06:00:00"
 
 daily_charge_time_friday:
   name: Ladezeit Freitag
   has_date: false
   has_time: true
-  initial: "07:00:00"
+  initial: "06:00:00"
 
 daily_charge_time_saturday:
   name: Ladezeit Samstag
@@ -39,9 +39,3 @@ daily_charge_time_sunday:
   has_date: false
   has_time: true
   initial: "09:00:00"
-
-adhoc_departure_time:
-  name: Adhoc Abfahrtszeitpunkt
-  has_date: false
-  has_time: true
-  initial: "17:00:00"

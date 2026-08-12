@@ -5,7 +5,7 @@ pv_surplus_threshold:
   step: 100
   unit_of_measurement: W
   icon: mdi:solar-power
-  initial: 3000
+  initial: 800
 
 target_soc:
   name: Ziel SOC
@@ -37,20 +37,20 @@ auto_battery_capacity:
 pv_peak_power:
   name: PV Peak Leistung
   min: 0
-  max: 20000
+  max: 25000
   step: 100
   unit_of_measurement: W
   icon: mdi:solar-power
-  initial: 8000
+  initial: 22000
 
 home_storage_spare_capacity:
   name: Home Speicher Restkapazität
   min: 0
-  max: 10000
+  max: 20000
   step: 100
   unit_of_measurement: Wh
   icon: mdi:database
-  initial: 2000
+  initial: 16000
 
 daily_target_soc_monday:
   name: SOC Montag
@@ -114,7 +114,7 @@ adhoc_target_soc:
   max: 100
   step: 1
   unit_of_measurement: '%'
-  initial: 90
+  initial: 80
 
 adhoc_charge_current_limit:
   name: Adhoc Maximale Ladeleistung

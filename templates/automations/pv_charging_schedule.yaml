@@ -1,56 +1,52 @@
-alias: 'PV Ladeplanung und Adhoc Laden'
-description: 'Steuere das tägliche und Adhoc-Laden des E-Autos mit PV-Überschuss und maximaler Ladeleistung.'
-trigger:
-  - platform: time_pattern
-    minutes: "/5"
-  - platform: state
-    entity_id:
-      - {{ input_boolean_daily_charging_enabled }}
-      - {{ input_boolean_adhoc_charging_enabled }}
-      - {{ input_select_adhoc_charge_mode }}
-condition: []
-action:
-  - choose:
-      - conditions:
-          - condition: state
-            entity_id: {{ input_boolean_daily_charging_enabled }}
-            state: 'on'
-          - condition: template
-            value_template: >
-              {% set today = now().weekday() %}
-              {% set start_times = {
-                0: states('{{ input_datetime_daily_charge_time_monday }}'),
-                1: states('{{ input_datetime_daily_charge_time_tuesday }}'),
-                2: states('{{ input_datetime_daily_charge_time_wednesday }}'),
-                3: states('{{ input_datetime_daily_charge_time_thursday }}'),
-                4: states('{{ input_datetime_daily_charge_time_friday }}'),
-                5: states('{{ input_datetime_daily_charge_time_saturday }}'),
-                6: states('{{ input_datetime_daily_charge_time_sunday }}')
-              } %}
-              {% set scheduled = start_times[today] %}
-              {% if scheduled == none %}
-                false
-              {% else %}
-                {{ now().strftime('%H:%M:%S') == scheduled }}
-              {% endif %}
-        sequence:
-          - service: script.turn_on
-            target:
-              entity_id: script.pv_daily_charge_handler
-      - conditions:
-          - condition: state
-            entity_id: {{ input_boolean_adhoc_charging_enabled }}
-            state: 'on'
-          - condition: template
-            value_template: >
-              {% set departure = today_at(states('{{ input_datetime_adhoc_departure_time }}')) %}
-              {{ departure is not none and now() < departure }}
-        sequence:
-          - service: script.turn_on
-            target:
-              entity_id: script.pv_adhoc_charge_handler
-    default:
-      - service: logbook.log
-        data:
-          name: 'PV Ladeplanung'
-          message: 'Automations-Trigger aktiv, kein Ladeauftrag gestartet.'
+- alias: 'PV Ladeplanung und Adhoc Laden'
+  description: 'Steuere das tägliche und Adhoc-Laden des E-Autos mit PV-Überschuss und maximaler Ladeleistung.'
+  trigger:
+    - platform: time_pattern
+      minutes: "/5"
+    - platform: state
+      entity_id:
+        - {{ input_boolean_daily_charging_enabled }}
+        - {{ input_boolean_adhoc_charging_enabled }}
+        - {{ input_select_adhoc_charge_mode }}
+  condition: []
+  action:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: {{ input_boolean_daily_charging_enabled }}
+              state: 'on'
+            - condition: template
+              value_template: >
+                {% set today = now().weekday() %}
+                {% set start_times = {
+                  0: states('{{ input_datetime_daily_charge_time_monday }}'),
+                  1: states('{{ input_datetime_daily_charge_time_tuesday }}'),
+                  2: states('{{ input_datetime_daily_charge_time_wednesday }}'),
+                  3: states('{{ input_datetime_daily_charge_time_thursday }}'),
+                  4: states('{{ input_datetime_daily_charge_time_friday }}'),
+                  5: states('{{ input_datetime_daily_charge_time_saturday }}'),
+                  6: states('{{ input_datetime_daily_charge_time_sunday }}')
+                } %}
+                {% set scheduled = start_times[today] %}
+                {% if scheduled == none %}
+                  false
+                {% else %}
+                  {{ now().strftime('%H:%M:%S') == scheduled }}
+                {% endif %}
+          sequence:
+            - service: script.turn_on
+              target:
+                entity_id: script.pv_tageslade_handler
+        - conditions:
+            - condition: state
+              entity_id: {{ input_boolean_adhoc_charging_enabled }}
+              state: 'on'
+          sequence:
+            - service: script.turn_on
+              target:
+                entity_id: script.pv_adhoc_lade_handler
+      default:
+        - service: logbook.log
+          data:
+            name: 'PV Ladeplanung'
+            message: 'Automations-Trigger aktiv, kein Ladeauftrag gestartet.'

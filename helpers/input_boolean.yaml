@@ -5,3 +5,7 @@ daily_charging_enabled:
 adhoc_charging_enabled:
   name: Adhoc Laden aktivieren
   initial: false
+
+wallbox_restart_latched:
+  name: Wallbox Neustart ausgelöst (intern)
+  initial: false

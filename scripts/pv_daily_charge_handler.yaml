@@ -1,28 +1,39 @@
 pv_daily_charge_handler:
   alias: PV Tageslade-Handler
+  mode: single
   sequence:
     - variables:
-        weekday: "{{ now().weekday() }}"
+        next_day: >-
+          {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+          {% set today = now().weekday() %}
+          {{ 1 if now() >= today_at(states('input_datetime.daily_charge_time_' + days[today])) else 0 }}
+        weekday: "{{ (now().weekday() + (next_day | int)) % 7 }}"
         weekday_name: >
           {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
           {{ days[weekday] }}
         target_soc: >
           {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
           {{ states('input_number.daily_target_soc_' + days[weekday]) | float(0) }}
-        departure: "{{ today_at(states('input_datetime.daily_charge_time_' + weekday_name)) }}"
+        departure: "{{ today_at(states('input_datetime.daily_charge_time_' + weekday_name)) + timedelta(days=next_day | int) }}"
         pv_power: "{{ states('sensor.solarnet_pv_leistung') | float(0) }}"
-        home_consumption: "{{ states('sensor.rank_josef_haus_1a_und_1b_leistung_ac') | float(0) }}"
+        pv_forecast_power: "{{ states('sensor.solcast_pv_forecast_leistung_in_1_stunde') | float(0) }}"
+        home_consumption: "{{ states('sensor.solarnet_leistung_verbrauch') | float(0) }}"
         charging_power: "{{ states('sensor.go_echarger_325099_power_total') | float(0) }}"
         auto_soc: "{{ states('sensor.pv_estimated_auto_soc') | float(0) }}"
         auto_soc_raw: "{{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}"
         battery_capacity_kwh: "{{ states('input_number.auto_battery_capacity') | float(38.5) }}"
         force_state: "{{ states('select.go_echarger_325099_force_state') }}"
+        car_state: "{{ states('sensor.go_echarger_325099_car_state') }}"
+        restart_latched: "{{ is_state('input_boolean.wallbox_restart_latched', 'on') }}"
         current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
         limit_stable: "{{ (now() - states.number.go_echarger_325099_set_max_ampere_limit.last_changed).total_seconds() >= 300 }}"
         pv_surplus_power: >
-          {% set surplus = pv_power - home_consumption - charging_power %}
+          {% set surplus = pv_power - home_consumption + charging_power %}
+          {{ [surplus, 0] | max | round(0) }}
+        forecast_surplus_power: >
+          {% set surplus = pv_forecast_power - home_consumption + charging_power %}
           {{ [surplus, 0] | max | round(0) }}
         time_hours: >
           {% if departure is none %}
@@ -41,11 +52,15 @@ pv_daily_charge_handler:
           {% else %}
             0
           {% endif %}
+        departure_imminent: "{{ time_hours <= 1 }}"
+        force_charge_required: "{{ departure_imminent and forecast_surplus_power < min_required_power }}"
         target_power: >
           {% if target_soc <= auto_soc or departure is none or time_hours <= 0 %}
             0
-          {% else %}
+          {% elif force_charge_required %}
             {{ [pv_surplus_power, min_required_power] | max }}
+          {% else %}
+            {{ pv_surplus_power }}
           {% endif %}
         desired_mode: >-
           {{ 'Force_3' if target_power >= 4000 else 'Force_1' }}
@@ -56,9 +71,9 @@ pv_daily_charge_handler:
             {% set current = (target_power / 230) | round(0, 'ceil') %}
           {% endif %}
           {{ [6, [current, 16] | min] | max }}
-        needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit }}"
-        starting_session: "{{ force_state != 'Neutral' }}"
-        can_update: "{{ not needs_update or starting_session or (mode_stable and limit_stable) }}"
+        desired_force_state: "{{ 'Neutral' if target_power > 0 else 'Off' }}"
+        needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
+        can_update: "{{ force_state in ['Off', 'Neutral'] or (mode_stable and limit_stable) }}"
     - choose:
         - conditions:
             - condition: template
@@ -67,23 +82,31 @@ pv_daily_charge_handler:
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ force_state != 'Neutral' }}"
+                      value_template: "{{ car_state != 'Complete' and restart_latched }}"
                   sequence:
-                    - service: input_number.set_value
+                    - service: input_boolean.turn_off
                       target:
-                        entity_id: input_number.charge_session_start_soc
-                      data:
-                        value: "{{ auto_soc_raw }}"
-                    - service: input_number.set_value
+                        entity_id: input_boolean.wallbox_restart_latched
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ car_state == 'Complete' and force_state == 'Neutral' and not restart_latched }}"
+                  sequence:
+                    - service: select.select_option
                       target:
-                        entity_id: input_number.charge_session_start_energy
+                        entity_id: select.go_echarger_325099_force_state
                       data:
-                        value: "{{ states('sensor.go_echarger_325099_energy_charged') | float(0) }}"
+                        option: 'Off'
+                    - delay:
+                        seconds: 2
                     - service: select.select_option
                       target:
                         entity_id: select.go_echarger_325099_force_state
                       data:
                         option: 'Neutral'
+                    - service: input_boolean.turn_on
+                      target:
+                        entity_id: input_boolean.wallbox_restart_latched
             - choose:
                 - conditions:
                     - condition: template
@@ -109,11 +132,21 @@ pv_daily_charge_handler:
                                 entity_id: number.go_echarger_325099_set_max_ampere_limit
                               data:
                                 value: "{{ desired_limit }}"
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ force_state != 'Neutral' }}"
+                          sequence:
+                            - service: select.select_option
+                              target:
+                                entity_id: select.go_echarger_325099_force_state
+                              data:
+                                option: 'Neutral'
                     - service: persistent_notification.create
                       data:
                         title: 'PV Tagesladung'
                         message: >
-                          Lade-Einstellung aktualisiert auf {{ desired_mode }} / {{ desired_limit }} A.
+                          Lade-Einstellung aktualisiert auf {{ desired_mode }} / {{ desired_limit }} A und Force-State = Neutral.
                 - conditions:
                     - condition: template
                       value_template: "{{ needs_update and not can_update }}"
@@ -123,13 +156,13 @@ pv_daily_charge_handler:
                         title: 'PV Tagesladung'
                         message: >
                           Phase/Strom warten 5 Minuten Stabilität, bevor ein erneuter Wechsel erfolgt.
-        - default:
-            - service: select.select_option
-              target:
-                entity_id: select.go_echarger_325099_force_state
-              data:
-                option: 'Off'
-            - service: persistent_notification.create
-              data:
-                title: 'PV Tagesladung'
-                message: 'Kein Ladebedarf oder Abfahrt vorbei.'
+      default:
+        - service: select.select_option
+          target:
+            entity_id: select.go_echarger_325099_force_state
+          data:
+            option: 'Off'
+        - service: persistent_notification.create
+          data:
+            title: 'PV Tagesladung'
+            message: 'Kein Ladebedarf oder Abfahrt vorbei.'
