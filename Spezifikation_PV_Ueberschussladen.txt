@@ -1,0 +1,56 @@
+PV Überschuss laden mit HomeAssist
+
+Es soll eine Automatisierung und ein Dashboard für Homeassist entwickelt werden, welche des E-Auto Lademanagement darstellt. Das Ziel ist zu einem vorherbekannten Startpunkt einen Soll SOC mit möglichst viel PV Strom zu erreichen.
+
+Folgende Entitäten gibt es:
+
+pv_power_sensor,sensor.solarnet_pv_leistung, 'W'
+battery_soc_sensor,sensor.hvm_ladezustand,'%'
+auto_soc_sensor,sensor.aceman_e_battery_hv_state_of_charge,'%'
+auto_target_soc, sensor.aceman_e_battery_ev_target_state_of_charge,'%'
+solar_forecast_power_in_1h_sensor,sensor.solcast_pv_forecast_leistung_in_1_stunde,'W'
+solar_forecast_energie_in_1h_sensor,sensor.solcast_pv_forecast_prognose_nachste_stunde,'Wh'
+home_consumption_sensor,sensor.rank_josef_haus_1a_und_1b_leistung_ac,'W'
+wallbox_mode_sensor,select.go_echarger_325099_phase_switch_mode,'Force_1 Force_3'
+wallbox_charge, binary_sensor.go_echarger_325099_allowed_to_charge,'Aus Ein'
+wallbox_current_limit_sensor,number.go_echarger_325099_set_max_ampere_limit, '6A bis 16A'
+wallbox_charging_power, sensor.go_echarger_325099_power_total, 'W'
+wallbox_operation_mode, select.go_echarger_325099_force_state, 'Off Neutral On'
+
+
+Constanten
+Kapazität Speicher Auto = 38500 Wh
+HomeSpeicherKapazitaet = 16000 Wh
+PV Peak Leistung
+HomeSpeicher Restkapazität  für Hausstrom
+
+Anforderungen:
+1. Es soll eine GUI geben auf der Der Status angezeigt wird wie: SOC Auto, Ladeleistung, LadeModus, Ladestrom, PV-Leistung, SOC Homespeicher.
+2. Es soll folgende Interaktionsmöglichkeiten für den User geben:
+2.1 Es soll ein Täglicher Startzeitpunkt (Vormittag) und ein Soll SOC für den täglichen Startzeitpunkt vom User eingegeben werden können. Dies Soll eine Tabelle mit Wochentage als Spalten und den Zeilen Zeitpunkt (hh:mm) und SOC (%) sein.
+2.2 Es soll eine Checkbox geben um das Tägliche Laden zu aktivieren
+2.3 Es soll für eine Adhoc Ladung ein Abfahrtszeitpunkt und ein Soll SOC definiert werden können
+2.4 Es soll eine Checkbox geben um die Adhoc Ladung zu aktivieren.
+2.5 Es soll eine Anzeige geben welcher SOC bis zum gewünschten Adhoc Abfahrtszeitpunkt möglich ist bei PV Überschuss Ladung und bei laden mit Maximaler Ladeleistung.
+2.6 Es soll einen Radiobutton geben um für die Adhoc Ladung aus zu wählen "nur mit PV Überschuss laden" oder "mit maximaler Ladeleistung laden"
+
+
+Üblicherweise wird das Fahrzeug an die Wallbox angeschlossen sobald es nach Hause kommt. Wenn es keine abweichende Usereingabe gibt wird der Speicher des Fahrzeugs rein aus der PV Überschussleistung geladen, so dass zum täglichen Startzeitpunkt der definierte SOC erreicht wird. 
+
+Die Automatisierung soll den PV Überschuss berechnen: PV_Überschuss = PV Generator Leistung (pv_power_sensor) - Hausverbrauch (home_consumption_sensor) - aktueller Ladeleistung(wallbox_charging_power) 
+
+Es ist in jedem Rechenschritt zu berechnen welche Mindestladeleistung nötig ist um den gewünschten SOC zur gewünschten Abfahrtszeit zu erreichen. 
+
+Für die Wallboxansteuerung muss die Zielladeleistung als Max-Wert aus PV-Überschuss und Mindestladeleistung gebildet werden. Es soll ein Statussignal gebildet werden für die Anzeige, ob PV Überschuss Ladung vorliegt oder Zwangsladung für Target SOC zur Abfahrt. Aus der Ziel Ladeleistung muss die Phasenanzahl ermittelt werden < 4000W -> 1 Phasige Ladung sonst 3 Phasige Ladung. Aus der Zielladeleistung muss dann abhängig von der Phasenanzahl der Ladestrom berechnet werden. Der Strom kann von 6A bis 16A in 1A Schritten eingestellt werden. Es soll aufgerundet werden.
+
+Wenn der gewünschte SOC erreicht wurde wird die Wallbox abgeschaltet mit select.go_echarger_325099_force_state == 'Off'.
+
+Wenn weder Tägliches Laden noch Adhoc Laden aktiv ist wird die Wallbox abgeschaltet mit select.go_echarger_325099_force_state == 'Off'.
+
+Wenn Adhoc Laden aktiv ist soll überprüft werden ob mit PV überschuss oder mit Maximaler Leistung geladen werden soll. Bei Maximaler Leistung soll solange der SOC des Autos kleiner als der Soll Adoc SOC ist mit 16A und 3 Phasen geladen werden. Wenn PV Überschuss aktiv ist, soll aus der PV Überschussleistung die Phasenanzahl und der Maximale Strom berechnet und eingestellt werden Wenn der ZielAdoc SOC größer ist als der aktuelle SOC soll geladen werden -> select.go_echarger_325099_force_state == 'On'. Es soll sonlange geladen werden bis der Soll Adhoc SOC erreicht wurde  . Dann soll die Wallbox abgeschaltet mit select.go_echarger_325099_force_state == 'Off' abgeschaltet werden.
+
+
+Für der SOC des Autos währdend des ladevorganges muss berechnet werden, auf Basis des SOC auto_target_soc und dieser muss dann während des Ladevorganges mit sensor.go_echarger_325099_energy_charged (Wh) verrechnet werden.
+
+Es soll eine Anzeige mit dem aktuellen PV Überschuss geben.
+

@@ -1,0 +1,82 @@
+title: PV Ladeautomation
+views:
+  - title: Übersicht
+    icon: mdi:ev-station
+    path: pv-laden
+    badges:
+      - entity: {{ pv_power_sensor }}
+      - entity: {{ battery_soc_sensor }}
+      - entity: {{ auto_soc_sensor }}
+    cards:
+      - type: entities
+        title: Aktueller Status
+        entities:
+          - entity: {{ auto_soc_sensor }}
+            name: SOC Auto
+          - entity: sensor.car_charge_power
+            name: Ladeleistung
+          - entity: {{ wallbox_mode_sensor }}
+            name: Lade-Modus
+          - entity: {{ wallbox_current_limit_sensor }}
+            name: Ladestrom
+          - entity: {{ pv_power_sensor }}
+            name: PV-Leistung
+          - entity: {{ battery_soc_sensor }}
+            name: SOC Homespeicher
+      - type: entities
+        title: Steuerung
+        entities:
+          - entity: {{ input_boolean_daily_charging_enabled }}
+            name: Tägliches Laden
+          - entity: {{ input_boolean_adhoc_charging_enabled }}
+            name: Adhoc Laden
+          - entity: {{ input_select_adhoc_charge_mode }}
+            name: Adhoc Lade-Modus
+          - entity: {{ input_number_pv_surplus_threshold }}
+          - entity: {{ input_number_target_soc }}
+          - entity: {{ input_number_adhoc_target_soc }}
+          - entity: {{ input_number_adhoc_charge_current_limit }}
+      - type: grid
+        title: Tagesplan
+        columns: 2
+        cards:
+          - type: entities
+            title: Montag
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_monday }}
+              - entity: {{ input_number_daily_target_soc_monday }}
+          - type: entities
+            title: Dienstag
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_tuesday }}
+              - entity: {{ input_number_daily_target_soc_tuesday }}
+          - type: entities
+            title: Mittwoch
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_wednesday }}
+              - entity: {{ input_number_daily_target_soc_wednesday }}
+          - type: entities
+            title: Donnerstag
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_thursday }}
+              - entity: {{ input_number_daily_target_soc_thursday }}
+          - type: entities
+            title: Freitag
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_friday }}
+              - entity: {{ input_number_daily_target_soc_friday }}
+          - type: entities
+            title: Samstag
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_saturday }}
+              - entity: {{ input_number_daily_target_soc_saturday }}
+          - type: entities
+            title: Sonntag
+            entities:
+              - entity: {{ input_datetime_daily_charge_time_sunday }}
+              - entity: {{ input_number_daily_target_soc_sunday }}
+      - type: entities
+        title: Prognosen
+        entities:
+          - entity: {{ solar_forecast_sensor }}
+            name: PV Prognose

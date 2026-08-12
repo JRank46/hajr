@@ -1,0 +1,154 @@
+title: PV Ladeautomation
+views:
+  - title: Übersicht
+    icon: mdi:ev-station
+    path: pv-laden
+    badges:
+      - entity: sensor.solarnet_pv_leistung
+      - entity: sensor.hvm_ladezustand
+      - entity: sensor.aceman_e_battery_hv_state_of_charge
+    cards:
+      - type: entities
+        title: Steuerung
+        entities:
+          - entity: input_boolean.daily_charging_enabled
+            name: Tägliches Laden
+          - entity: input_boolean.adhoc_charging_enabled
+            name: Adhoc Laden
+          - entity: input_select.adhoc_charge_mode
+            name: Adhoc Lade-Modus
+          - entity: input_datetime.adhoc_departure_time
+            name: Adhoc Abfahrtszeit
+          - entity: input_number.pv_surplus_threshold
+          - entity: input_number.target_soc
+          - entity: input_number.adhoc_target_soc
+          - entity: input_number.adhoc_charge_current_limit
+      - type: entities
+        title: Aktueller Status
+        entities:
+          - entity: sensor.aceman_e_battery_hv_state_of_charge
+            name: SOC Auto
+          - entity: sensor.go_echarger_325099_power_total
+            name: Ladeleistung
+          - entity: select.go_echarger_325099_phase_switch_mode
+            name: Lade-Modus
+          - entity: number.go_echarger_325099_set_max_ampere_limit
+            name: Ladestrom
+          - entity: sensor.solarnet_pv_leistung
+            name: PV-Leistung
+          - entity: sensor.hvm_ladezustand
+            name: SOC Homespeicher
+          - entity: select.go_echarger_325099_force_state
+            name: Wallboc Status
+      - type: vertical-stack
+        title: Tagesplan
+        cards:
+          - type: entities
+            title: Montag
+            entities:
+              - entity: input_datetime.daily_charge_time_monday
+              - entity: input_number.daily_target_soc_monday
+          - type: entities
+            title: Dienstag
+            entities:
+              - entity: input_datetime.daily_charge_time_tuesday
+              - entity: input_number.daily_target_soc_tuesday
+          - type: entities
+            title: Mittwoch
+            entities:
+              - entity: input_datetime.daily_charge_time_wednesday
+              - entity: input_number.daily_target_soc_wednesday
+          - type: entities
+            title: Donnerstag
+            entities:
+              - entity: input_datetime.daily_charge_time_thursday
+              - entity: input_number.daily_target_soc_thursday
+          - type: entities
+            title: Freitag
+            entities:
+              - entity: input_datetime.daily_charge_time_friday
+              - entity: input_number.daily_target_soc_friday
+          - type: entities
+            title: Samstag
+            entities:
+              - entity: input_datetime.daily_charge_time_saturday
+              - entity: input_number.daily_target_soc_saturday
+          - type: entities
+            title: Sonntag
+            entities:
+              - entity: input_datetime.daily_charge_time_sunday
+              - entity: input_number.daily_target_soc_sunday
+      - type: entities
+        title: Prognosen & Status
+        entities:
+          - entity: sensor.pv_estimated_auto_soc
+            name: SOC Auto (live geschätzt)
+          - entity: sensor.pv_surplus_soc_estimate
+            name: SOC bei PV Überschuss
+          - entity: sensor.pv_max_charge_soc_estimate
+            name: SOC bei Maximaler Ladeleistung
+          - entity: sensor.pv_charge_status
+            name: Lade-Status
+          - entity: sensor.pv_charge_target_power
+            name: Ziel-Ladeleistung
+          - entity: sensor.pv_charge_surplus_power
+            name: PV Überschuss Leistung
+      - type: markdown
+        title: Debug – Adhoc Ladehandler
+        content: >
+          {% set d = states.sensor.pv_adhoc_debug %}
+          | Größe | Wert |
+          |---|---|
+          | Adhoc Laden aktiv | {{ d.attributes.adhoc_charging_enabled }} |
+          | Adhoc Modus | {{ d.attributes.adhoc_mode }} |
+          | Adhoc Max-Strom | {{ d.attributes.adhoc_max_limit_a }} A |
+          | Ziel SOC | {{ d.attributes.target_soc_pct }} % |
+          | SOC Auto (roh) | {{ d.attributes.auto_soc_raw_pct }} % |
+          | SOC Auto (schnell geschätzt) | {{ d.attributes.auto_soc_fast_estimate_pct }} % |
+          | Abfahrtszeit | {{ d.attributes.departure_time }} |
+          | Zeit bis Abfahrt | {{ d.attributes.time_until_departure_h }} h |
+          | PV-Leistung | {{ d.attributes.pv_power_w }} W |
+          | Hausverbrauch | {{ d.attributes.home_consumption_w }} W |
+          | Ladeleistung Wallbox | {{ d.attributes.wallbox_charging_power_w }} W |
+          | PV Überschuss | {{ d.attributes.pv_surplus_power_w }} W |
+          | Energiebedarf | {{ d.attributes.energy_needed_wh }} Wh |
+          | Mindestladeleistung | {{ d.attributes.min_required_power_w }} W |
+          | **Ziel-Ladeleistung** | **{{ d.attributes.target_power_w }} W** |
+          | **Soll-Modus** | **{{ d.attributes.desired_mode }}** |
+          | **Soll-Strom** | **{{ d.attributes.desired_limit_a }} A** |
+          | Ist-Modus | {{ d.attributes.current_mode }} |
+          | Ist-Strom | {{ d.attributes.current_limit_a }} A |
+          | Wallbox Force-State | {{ d.attributes.force_state }} |
+          | Modus seit 5 min stabil | {{ d.attributes.mode_stable_5min }} |
+          | Strom seit 5 min stabil | {{ d.attributes.limit_stable_5min }} |
+          | **Änderung nötig** | **{{ d.attributes.needs_update }}** |
+          | **Änderung erlaubt (5 min)** | **{{ d.attributes.can_update }}** |
+      - type: markdown
+        title: Debug – Tageslade-Handler
+        content: >
+          {% set d = states.sensor.pv_daily_debug %}
+          | Größe | Wert |
+          |---|---|
+          | Tägliches Laden aktiv | {{ d.attributes.daily_charging_enabled }} |
+          | Wochentag | {{ d.attributes.weekday_name }} |
+          | Ziel SOC | {{ d.attributes.target_soc_pct }} % |
+          | SOC Auto (roh) | {{ d.attributes.auto_soc_raw_pct }} % |
+          | SOC Auto (schnell geschätzt) | {{ d.attributes.auto_soc_fast_estimate_pct }} % |
+          | Startzeitpunkt | {{ d.attributes.departure_time }} |
+          | Zeit bis Startzeitpunkt | {{ d.attributes.time_until_departure_h }} h |
+          | PV-Leistung | {{ d.attributes.pv_power_w }} W |
+          | Hausverbrauch | {{ d.attributes.home_consumption_w }} W |
+          | Ladeleistung Wallbox | {{ d.attributes.wallbox_charging_power_w }} W |
+          | PV Überschuss | {{ d.attributes.pv_surplus_power_w }} W |
+          | Energiebedarf | {{ d.attributes.energy_needed_wh }} Wh |
+          | Mindestladeleistung | {{ d.attributes.min_required_power_w }} W |
+          | **Ziel-Ladeleistung** | **{{ d.attributes.target_power_w }} W** |
+          | **Soll-Modus** | **{{ d.attributes.desired_mode }}** |
+          | **Soll-Strom** | **{{ d.attributes.desired_limit_a }} A** |
+          | Ist-Modus | {{ d.attributes.current_mode }} |
+          | Ist-Strom | {{ d.attributes.current_limit_a }} A |
+          | Wallbox Force-State | {{ d.attributes.force_state }} |
+          | Modus seit 5 min stabil | {{ d.attributes.mode_stable_5min }} |
+          | Strom seit 5 min stabil | {{ d.attributes.limit_stable_5min }} |
+          | **Änderung nötig** | **{{ d.attributes.needs_update }}** |
+          | **Änderung erlaubt (5 min)** | **{{ d.attributes.can_update }}** |

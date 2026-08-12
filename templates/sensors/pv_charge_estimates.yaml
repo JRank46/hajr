@@ -1,0 +1,14 @@
+- platform: template
+  sensors:
+    pv_auto_soc_estimate:
+      friendly_name: 'Auto SOC Schätzung'
+      unit_of_measurement: '%'
+      value_template: >
+        {% set soc = states('{{ auto_soc_sensor }}') | float(0) %}
+        {% set estimate = soc + (states('{{ pv_power_sensor }}') | float(0)) * 0.01 %}
+        {{ [estimate, 0] | max | round(1) }}
+    pv_home_battery_soc:
+      friendly_name: 'Homespeicher SOC'
+      unit_of_measurement: '%'
+      value_template: >
+        {{ states('{{ battery_soc_sensor }}') }}

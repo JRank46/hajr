@@ -1,0 +1,35 @@
+pv_adhoc_charge_handler:
+  alias: PV Adhoc Lade-Handler
+  sequence:
+    - choose:
+        - conditions:
+            - condition: numeric_state
+              entity_id: {{ pv_power_sensor }}
+              above: {{ input_number_pv_surplus_threshold }}
+            - condition: numeric_state
+              entity_id: {{ auto_soc_sensor }}
+              below: {{ input_number_adhoc_target_soc }}
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: {{ ev_charger_switch }}
+            - service: persistent_notification.create
+              data:
+                title: 'PV Adhoc Laden'
+                message: 'Adhoc-Ladeauftrag gestartet.'
+        - conditions:
+            - condition: numeric_state
+              entity_id: {{ auto_soc_sensor }}
+              above: {{ input_number_adhoc_target_soc }}
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: {{ ev_charger_switch }}
+            - service: persistent_notification.create
+              data:
+                title: 'PV Adhoc Laden'
+                message: 'Adhoc Ziel-SOC erreicht.'
+      default:
+        - service: switch.turn_off
+          target:
+            entity_id: {{ ev_charger_switch }}

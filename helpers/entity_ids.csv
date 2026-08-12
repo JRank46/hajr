@@ -1,0 +1,13 @@
+key,entity_id,Info
+pv_power_sensor,sensor.solarnet_pv_leistung, 'W'
+battery_soc_sensor,sensor.hvm_ladezustand,'%'
+auto_soc_sensor,sensor.aceman_e_battery_hv_state_of_charge,'%'
+auto_target_soc, sensor.aceman_e_battery_ev_target_state_of_charge,'%'
+solar_forecast_power_in_1h_sensor,sensor.solcast_pv_forecast_leistung_in_1_stunde,'W'
+solar_forecast_energie_in_1h_sensor,sensor.solcast_pv_forecast_prognose_nachste_stunde,'Wh'
+home_consumption_sensor,sensor.rank_josef_haus_1a_und_1b_leistung_ac,'W'
+wallbox_mode_sensor,select.go_echarger_325099_phase_switch_mode,'Force_1 Force_3'
+wallbox_charge, binary_sensor.go_echarger_325099_allowed_to_charge,'Aus Ein'
+wallbox_current_limit_sensor,number.go_echarger_325099_set_max_ampere_limit, '6A bis 16A'
+wallbox_charging_power, sensor.go_echarger_325099_power_total, 'W'
+wallbox_operation_mode, select.go_echarger_325099_force_state, 'Off Neutral On'

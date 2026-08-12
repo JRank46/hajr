@@ -1,0 +1,58 @@
+alias: 'PV Überschuss Laden'
+description: 'Steuere Laden bei PV Überschuss unter Berücksichtigung von Batteriestand, Zeit und Vorhersage.'
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.pv_power
+    above: 3000
+  - platform: state
+    entity_id: sensor.pv_power
+
+condition:
+  - condition: template
+    value_template: >
+      {{ states('sensor.pv_power') | float(0) >= states('input_number.pv_surplus_threshold') | float(0) }}
+  - condition: template
+    value_template: >
+      {{ states('sensor.battery_soc') | float(0) < states('input_number.target_soc') | float(0) }}
+  - condition: template
+    value_template: >
+      {% set forecast = states('sensor.solar_forecast_power') | float(-1) %}
+      {{ forecast < 0 or forecast > 0 }}
+  - condition: time
+    after: input_datetime.pv_charge_start_time
+    before: input_datetime.pv_charge_end_time
+
+action:
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.pv_power
+            above: 3000
+          - condition: numeric_state
+            entity_id: sensor.battery_soc
+            below: input_number.target_soc
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: switch.ev_charger
+          - service: persistent_notification.create
+            data:
+              title: 'PV Ladeautomation'
+              message: 'Ladegerät eingeschaltet wegen PV-Überschuss.'
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.pv_power
+            below: input_number.pv_surplus_threshold
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: switch.ev_charger
+          - service: persistent_notification.create
+            data:
+              title: 'PV Ladeautomation'
+              message: 'Ladegerät ausgeschaltet, da kein ausreichender PV-Überschuss vorhanden ist.'
+    default:
+      - service: logbook.log
+        data:
+          name: 'PV Ladeautomation'
+          message: 'Keine Aktion — Bedingungen nicht erfüllt.'

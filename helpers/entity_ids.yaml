@@ -1,0 +1,11 @@
+# Zentrale Entity-ID-Konfiguration für die PV-Ladeautomation.
+# Trage hier die tatsächlichen Entity-IDs aus Home Assistant ein.
+
+pv_power_sensor: sensor.pv_power
+battery_soc_sensor: sensor.battery_soc
+auto_soc_sensor: sensor.auto_soc
+home_consumption_sensor: sensor.home_consumption
+solar_forecast_sensor: sensor.solar_forecast_power
+wallbox_mode_sensor: sensor.wallbox_mode
+wallbox_current_limit_sensor: sensor.wallbox_current_limit
+ev_charger_switch: switch.ev_charger

@@ -1,0 +1,48 @@
+alias: 'PV Ladeplanung und Adhoc Laden'
+description: 'Steuere das tägliche und Adhoc-Laden des E-Autos mit PV-Überschuss und maximaler Ladeleistung.'
+trigger:
+  # 1 Sekunde ist die schnellste von Home Assistants time_pattern-Trigger unterstützte
+  # Auflösung (Sub-Sekunden-Werte wie 200ms werden nicht unterstützt). Die Anzeige-
+  # Sensoren in sensors/pv_charge_estimates.yaml aktualisieren sich zusätzlich sofort,
+  # sobald sich eine referenzierte Quelle ändert (event-basiert, meist schneller als 1s).
+  - platform: time_pattern
+    seconds: "/1"
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.adhoc_charging_enabled
+            state: 'on'
+          - condition: template
+            value_template: >
+              {% set departure = today_at(states('input_datetime.adhoc_departure_time')) %}
+              {{ departure is not none and now() < departure }}
+        sequence:
+          - service: script.turn_on
+            target:
+              entity_id: script.pv_adhoc_charge_handler
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.daily_charging_enabled
+            state: 'on'
+          - condition: template
+            value_template: >
+              {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+              {% set today = now().weekday() %}
+              {% set departure = today_at(states('input_datetime.daily_charge_time_' + days[today])) %}
+              {{ departure is not none and now() < departure }}
+        sequence:
+          - service: script.turn_on
+            target:
+              entity_id: script.pv_daily_charge_handler
+    default:
+      - service: select.select_option
+        target:
+          entity_id: select.go_echarger_325099_force_state
+        data:
+          option: 'Off'
+      - service: logbook.log
+        data:
+          name: 'PV Ladeplanung'
+          message: 'Nicht aktiv oder Abfahrt bereits vorbei. Wallbox auf Off gesetzt.'

@@ -1,0 +1,6 @@
+adhoc_charge_mode:
+  name: Adhoc Lade-Modus
+  options:
+    - Nur PV-Überschuss
+    - Maximale Ladeleistung
+  initial: Nur PV-Überschuss

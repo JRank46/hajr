@@ -1,0 +1,26 @@
+# Beispiel für die Einbindung in configuration.yaml
+
+automation: !include automations/pv_charging_schedule.yaml
+input_number: !include helpers/input_number.yaml
+input_datetime: !include helpers/input_datetime.yaml
+input_boolean: !include helpers/input_boolean.yaml
+input_select: !include helpers/input_select.yaml
+script: !include_dir_merge_named scripts
+template: !include sensors/pv_charge_estimates.yaml
+
+# Central entity ID configuration
+# entities: !include helpers/entity_ids.yaml
+
+# Beispiel für eine Lovelace YAML-Dashboard-Datei
+# lovelace:
+#   mode: yaml
+#   resources: !include dashboards/resources.yaml
+#   dashboards:
+#     pv_charging_dashboard:
+#       mode: yaml
+#       title: PV Ladeautomation
+#       icon: mdi:ev-station
+#       show_in_sidebar: true
+#       filename: dashboards/pv_charging_dashboard.yaml
+
+# Optional kannst du weitere Automationen in scripts/ oder zusätzliche Sensoren in sensors/ ablegen.

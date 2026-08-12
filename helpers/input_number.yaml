@@ -1,0 +1,144 @@
+pv_surplus_threshold:
+  name: PV Überschuss-Schwelle
+  min: 0
+  max: 10000
+  step: 100
+  unit_of_measurement: W
+  icon: mdi:solar-power
+  initial: 3000
+
+target_soc:
+  name: Ziel SOC
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  icon: mdi:battery
+  initial: 80
+
+home_storage_capacity:
+  name: Home Speicher Kapazität
+  min: 0
+  max: 100000
+  step: 100
+  unit_of_measurement: kWh
+  icon: mdi:factory
+  initial: 16
+
+auto_battery_capacity:
+  name: Auto Batterie Kapazität
+  min: 1
+  max: 200
+  step: 0.5
+  unit_of_measurement: kWh
+  icon: mdi:car-battery
+  initial: 38.5
+
+pv_peak_power:
+  name: PV Peak Leistung
+  min: 0
+  max: 20000
+  step: 100
+  unit_of_measurement: W
+  icon: mdi:solar-power
+  initial: 8000
+
+home_storage_spare_capacity:
+  name: Home Speicher Restkapazität
+  min: 0
+  max: 10000
+  step: 100
+  unit_of_measurement: Wh
+  icon: mdi:database
+  initial: 2000
+
+daily_target_soc_monday:
+  name: SOC Montag
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+daily_target_soc_tuesday:
+  name: SOC Dienstag
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+daily_target_soc_wednesday:
+  name: SOC Mittwoch
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+daily_target_soc_thursday:
+  name: SOC Donnerstag
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+daily_target_soc_friday:
+  name: SOC Freitag
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+daily_target_soc_saturday:
+  name: SOC Samstag
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+daily_target_soc_sunday:
+  name: SOC Sonntag
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 80
+
+adhoc_target_soc:
+  name: Adhoc Ziel-SOC
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  initial: 90
+
+adhoc_charge_current_limit:
+  name: Adhoc Maximale Ladeleistung
+  min: 6
+  max: 16
+  step: 1
+  unit_of_measurement: A
+  icon: mdi:flash
+  initial: 16
+
+charge_session_start_soc:
+  name: Ladesitzung Start-SOC (intern)
+  min: 0
+  max: 100
+  step: 0.1
+  unit_of_measurement: '%'
+  icon: mdi:battery-clock
+  initial: 0
+
+charge_session_start_energy:
+  name: Ladesitzung Start-Energie (intern)
+  min: 0
+  max: 1000000
+  step: 1
+  unit_of_measurement: Wh
+  icon: mdi:counter
+  initial: 0

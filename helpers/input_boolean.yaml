@@ -1,0 +1,7 @@
+daily_charging_enabled:
+  name: Tägliches Laden aktivieren
+  initial: true
+
+adhoc_charging_enabled:
+  name: Adhoc Laden aktivieren
+  initial: false
