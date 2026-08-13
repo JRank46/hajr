@@ -16,6 +16,8 @@ views:
             name: Adhoc Laden
           - entity: input_select.adhoc_charge_mode
             name: Adhoc Lade-Modus
+          - entity: input_select.pv_surplus_current_rounding
+            name: PV-Überschuss Ladestrom runden
           - entity: input_number.pv_surplus_threshold
           - entity: input_number.adhoc_target_soc
           - entity: input_number.adhoc_charge_current_limit

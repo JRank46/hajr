@@ -107,6 +107,7 @@
     adhoc_charging_enabled: "{{ states('input_boolean.adhoc_charging_enabled') }}"
     adhoc_mode: "{{ states('input_select.adhoc_charge_mode') }}"
     adhoc_max_limit: "{{ states('input_number.adhoc_charge_current_limit') | int }}"
+    surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
     current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
     current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
     mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -135,10 +136,10 @@
       {% if adhoc_mode == 'Maximale Ladeleistung' and target_power > 0 %}
         16
       {% elif target_power >= 4000 %}
-        {% set current = (target_power / 690) | round(0, 'ceil') %}
+        {% set current = (target_power / 690) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
         {{ [6, [current, 16] | min] | max }}
       {% else %}
-        {% set current = (target_power / 230) | round(0, 'ceil') %}
+        {% set current = (target_power / 230) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
         {{ [6, [current, 16] | min] | max }}
       {% endif %}
     desired_force_state: "{{ 'Neutral' if target_power > 0 else 'Off' }}"
@@ -237,6 +238,7 @@
     battery_capacity_kwh: "{{ states('input_number.auto_battery_capacity') | float(38.5) }}"
     force_state: "{{ states('select.go_echarger_325099_force_state') }}"
     daily_charging_enabled: "{{ states('input_boolean.daily_charging_enabled') }}"
+    surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
     current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
     current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
     mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -278,9 +280,9 @@
       {{ 'Force_3' if target_power >= 4000 else 'Force_1' }}
     desired_limit: >
       {% if target_power >= 4000 %}
-        {% set current = (target_power / 690) | round(0, 'ceil') %}
+        {% set current = (target_power / 690) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
       {% else %}
-        {% set current = (target_power / 230) | round(0, 'ceil') %}
+        {% set current = (target_power / 230) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
       {% endif %}
       {{ [6, [current, 16] | min] | max }}
     needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit }}"

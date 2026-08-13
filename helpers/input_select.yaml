@@ -4,3 +4,10 @@ adhoc_charge_mode:
     - Nur PV-Überschuss
     - Maximale Ladeleistung
   initial: Nur PV-Überschuss
+
+pv_surplus_current_rounding:
+  name: PV-Überschuss Ladestrom runden
+  options:
+    - Abrunden
+    - Aufrunden
+  initial: Abrunden

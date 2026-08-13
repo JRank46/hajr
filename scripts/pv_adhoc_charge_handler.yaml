@@ -15,6 +15,7 @@ pv_adhoc_charge_handler:
         restart_latched: "{{ is_state('input_boolean.wallbox_restart_latched', 'on') }}"
         adhoc_mode: "{{ states('input_select.adhoc_charge_mode') }}"
         adhoc_max_limit: "{{ states('input_number.adhoc_charge_current_limit') | int }}"
+        surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
         current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -42,9 +43,9 @@ pv_adhoc_charge_handler:
         starting_session: "{{ force_state != 'Neutral' }}"
         base_limit: >
           {% if target_power >= 4000 %}
-            {% set current = (target_power / 690) | round(0, 'floor') %}
+            {% set current = (target_power / 690) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
           {% else %}
-            {% set current = (target_power / 230) | round(0, 'floor') %}
+            {% set current = (target_power / 230) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
           {% endif %}
           {{ [6, [current, adhoc_max_limit] | min] | max }}
         desired_limit: >
