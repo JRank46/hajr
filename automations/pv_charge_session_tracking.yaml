@@ -4,7 +4,12 @@
     - platform: numeric_state
       entity_id: sensor.go_echarger_325099_power_total
       above: 100
-  condition: []
+    - platform: state
+      entity_id: sensor.aceman_e_battery_hv_state_of_charge
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.go_echarger_325099_power_total
+      above: 100
   action:
     - service: input_number.set_value
       target:
