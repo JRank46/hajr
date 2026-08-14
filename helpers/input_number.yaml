@@ -142,3 +142,12 @@ charge_session_start_energy:
   unit_of_measurement: Wh
   icon: mdi:counter
   initial: 0
+
+pv_estimated_auto_soc_correction:
+  name: SOC-Schätzer Korrektur
+  min: -20
+  max: 20
+  step: 0.1
+  unit_of_measurement: '%'
+  icon: mdi:plus-minus-variant
+  initial: 0

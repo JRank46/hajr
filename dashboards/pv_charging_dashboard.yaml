@@ -21,6 +21,8 @@ views:
           - entity: input_number.pv_surplus_threshold
           - entity: input_number.adhoc_target_soc
           - entity: input_number.adhoc_charge_current_limit
+          - entity: input_number.pv_estimated_auto_soc_correction
+            name: SOC-Schätzer manuell korrigieren
       - type: entities
         title: Aktueller Status
         entities:
@@ -181,6 +183,8 @@ views:
             name: Fahrzeug-SOC gemeldet
           - entity: sensor.pv_estimated_auto_soc
             name: Fahrzeug-SOC geschätzt
+          - entity: input_number.pv_estimated_auto_soc_correction
+            name: Manuelle SOC-Korrektur
           - entity: input_number.charge_session_start_soc
             name: SOC-Basis der Ladesitzung
           - entity: input_number.charge_session_start_energy

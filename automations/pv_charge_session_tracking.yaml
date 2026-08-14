@@ -1,15 +1,26 @@
 - alias: 'PV Ladesitzung Startwert erfassen'
-  description: 'Speichert Fahrzeug-SOC und Wallbox-Energie beim tatsächlichen Start einer Ladesitzung.'
+  description: 'Initialisiert die SOC-Schätzung beim Verbinden, Ladebeginn oder einer SOC-Aktualisierung während des Ladens.'
   trigger:
     - platform: numeric_state
       entity_id: sensor.go_echarger_325099_power_total
       above: 100
+      id: charging_started
     - platform: state
       entity_id: sensor.aceman_e_battery_hv_state_of_charge
+      id: soc_updated
+    - platform: state
+      entity_id: sensor.go_echarger_325099_car_state
+      from: 'Idle'
+      to:
+        - 'Wait_Car'
+        - 'Charging'
+      id: car_connected
   condition:
-    - condition: numeric_state
-      entity_id: sensor.go_echarger_325099_power_total
-      above: 100
+    - condition: template
+      value_template: >
+        {{ trigger.id in ['charging_started', 'car_connected'] or
+           (trigger.id == 'soc_updated' and
+            states('sensor.go_echarger_325099_power_total') | float(0) > 100) }}
   action:
     - service: input_number.set_value
       target:
@@ -21,4 +32,9 @@
         entity_id: input_number.charge_session_start_energy
       data:
         value: "{{ states('sensor.go_echarger_325099_energy_charged') | float(0) }}"
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.pv_estimated_auto_soc_correction
+      data:
+        value: 0
   mode: single

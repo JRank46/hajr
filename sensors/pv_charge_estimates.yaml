@@ -9,8 +9,9 @@
         {% set energy_now = states('sensor.go_echarger_325099_energy_charged') | float(0) %}
         {% set capacity_wh = (states('input_number.auto_battery_capacity') | float(38.5)) * 1000 %}
         {% set raw_soc = states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) %}
+        {% set correction = states('input_number.pv_estimated_auto_soc_correction') | float(0) %}
         {% set delta_wh = [energy_now - baseline_energy, 0] | max %}
-        {% set estimate = (baseline_soc + (delta_wh / capacity_wh * 100)) if capacity_wh > 0 else raw_soc %}
+        {% set estimate = (baseline_soc + (delta_wh / capacity_wh * 100) + correction) if capacity_wh > 0 else raw_soc %}
         {{ [100, [raw_soc, estimate] | max] | min | round(1) }}
     - name: "pv_active_target_soc"
       unique_id: pv_active_target_soc
