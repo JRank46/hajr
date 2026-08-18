@@ -1,0 +1,3 @@
+pv_apply_estimated_auto_soc_correction:
+  name: SOC-Schätzer Korrektur übernehmen
+  icon: mdi:check

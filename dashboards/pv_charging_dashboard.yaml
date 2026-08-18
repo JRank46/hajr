@@ -14,15 +14,27 @@ views:
             name: Tägliches Laden
           - entity: input_boolean.adhoc_charging_enabled
             name: Adhoc Laden
-          - entity: input_select.adhoc_charge_mode
-            name: Adhoc Lade-Modus
-          - entity: input_select.pv_surplus_current_rounding
-            name: PV-Überschuss Ladestrom runden
-          - entity: input_number.pv_surplus_threshold
-          - entity: input_number.adhoc_target_soc
-          - entity: input_number.adhoc_charge_current_limit
           - entity: input_number.pv_estimated_auto_soc_correction
-            name: SOC-Schätzer manuell korrigieren
+            name: SOC-Schätzer Korrektur (Delta)
+          - entity: input_button.pv_apply_estimated_auto_soc_correction
+            name: SOC-Schätzer Korrektur übernehmen
+          - entity: sensor.pv_estimated_auto_soc
+            name: SOC-Wert (live geschätzt)
+      - type: entities
+        title: Einstellungen
+        entities:
+          - entity: input_number.pv_net_surplus_start_threshold
+            name: PV-Netzüberschuss Einschaltschwelle
+          - entity: input_number.pv_net_surplus_stop_threshold
+            name: PV-Netzüberschuss Ausschaltschwelle
+          - entity: input_select.pv_surplus_current_rounding
+            name: PV-Überschuss runden
+          - entity: input_select.adhoc_charge_mode
+            name: Adhoc Lademodus
+          - entity: input_number.adhoc_target_soc
+            name: Adhoc Ziel-SOC
+          - entity: input_number.adhoc_charge_power_limit
+            name: Adhoc Maximale Ladeleistung
       - type: entities
         title: Aktueller Status
         entities:
@@ -55,8 +67,16 @@ views:
             name: Lade-Status
           - entity: sensor.pv_charge_target_power
             name: Ziel-Ladeleistung
-          - entity: sensor.pv_charge_surplus_power
-            name: PV Überschuss Leistung
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
+          - entity: sensor.pv_net_surplus_power_raw
+            name: PV-Netzüberschuss roh
+          - entity: sensor.pv_net_surplus_power_filtered
+            name: PV-Netzüberschuss Tiefpass
+          - entity: binary_sensor.pv_charge_start_ready
+            name: PV-Netzüberschuss seit 60 s mindestens 750 W
+          - entity: binary_sensor.pv_charge_stop_required
+            name: PV-Netzüberschuss seit 5 min maximal -500 W
           - entity: sensor.solcast_pv_forecast_leistung_in_1_stunde
             name: PV Prog. Leistung in 1 h
           - entity: sensor.solcast_pv_forecast_prognose_aktuelle_stunde
@@ -109,7 +129,7 @@ views:
     icon: mdi:bug-check-outline
     path: pv-laden-diagnose
     badges:
-      - entity: sensor.pv_charge_surplus_power
+      - entity: sensor.pv_charge_available_power
       - entity: sensor.go_echarger_325099_power_total
       - entity: sensor.pv_estimated_auto_soc
     cards:
@@ -127,8 +147,8 @@ views:
             name: Entscheidungsstatus
           - entity: sensor.pv_charge_target_power
             name: Berechnete Ziel-Ladeleistung
-          - entity: sensor.pv_charge_surplus_power
-            name: PV-Überschuss nach Wallbox-Kompensation
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
           - type: attribute
             entity: sensor.pv_daily_debug
             attribute: force_charge_required
@@ -153,10 +173,12 @@ views:
             name: Gemessene Wallboxleistung
           - entity: sensor.pv_charge_house_load_without_wallbox
             name: Hausverbrauch ohne Wallbox
-          - entity: sensor.pv_charge_surplus_before_wallbox_compensation
-            name: Überschuss vor Wallbox-Kompensation
-          - entity: sensor.pv_charge_surplus_power
-            name: Überschuss nach Wallbox-Kompensation
+          - entity: sensor.pv_net_surplus_power_raw
+            name: PV-Netzüberschuss roh
+          - entity: sensor.pv_net_surplus_power_filtered
+            name: PV-Netzüberschuss Tiefpass
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
           - entity: sensor.pv_charge_wallbox_expected_power
             name: Erwartete Wallboxleistung aus Sollwerten
           - entity: sensor.pv_charge_wallbox_power_delta
@@ -184,14 +206,16 @@ views:
           - entity: sensor.pv_estimated_auto_soc
             name: Fahrzeug-SOC geschätzt
           - entity: input_number.pv_estimated_auto_soc_correction
-            name: Manuelle SOC-Korrektur
+            name: Vorgemerkte SOC-Korrektur (Delta)
+          - entity: input_button.pv_apply_estimated_auto_soc_correction
+            name: SOC-Korrektur übernehmen
           - entity: input_number.charge_session_start_soc
             name: SOC-Basis der Ladesitzung
           - entity: input_number.charge_session_start_energy
             name: Energie-Basis der Ladesitzung
       - type: history-graph
-        title: Leistung der letzten 6 Stunden
-        hours_to_show: 6
+        title: Leistung der letzten 2 Stunden
+        hours_to_show: 2
         refresh_interval: 30
         entities:
           - entity: sensor.solarnet_pv_leistung
@@ -200,8 +224,12 @@ views:
             name: Haus
           - entity: sensor.go_echarger_325099_power_total
             name: Wallbox
-          - entity: sensor.pv_charge_surplus_power
-            name: Überschuss
+          - entity: sensor.pv_net_surplus_power_filtered
+            name: PV-Netzüberschuss Tiefpass
+          - entity: sensor.pv_net_surplus_power_raw
+            name: PV-Netzüberschuss roh
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
       - type: history-graph
         title: Ladesitzung der letzten 24 Stunden
         hours_to_show: 24

@@ -41,6 +41,7 @@ FILES = [
     'helpers/input_datetime.yaml',
     'helpers/input_boolean.yaml',
     'helpers/input_select.yaml',
+    'helpers/input_button.yaml',
     'dashboards/pv_charging_dashboard.yaml',
     'dashboards/resources.yaml',
     'sensors/pv_charge_estimates.yaml',

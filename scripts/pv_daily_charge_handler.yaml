@@ -30,9 +30,9 @@ pv_daily_charge_handler:
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
         limit_stable: "{{ (now() - states.number.go_echarger_325099_set_max_ampere_limit.last_changed).total_seconds() >= 300 }}"
-        pv_surplus_power: >
-          {% set surplus = pv_power - home_consumption + charging_power %}
-          {{ [surplus, 0] | max | round(0) }}
+        available_charge_power: "{{ states('sensor.pv_charge_available_power') | float(0) }}"
+        pv_start_ready: "{{ is_state('binary_sensor.pv_charge_start_ready', 'on') }}"
+        pv_stop_required: "{{ is_state('binary_sensor.pv_charge_stop_required', 'on') }}"
         forecast_surplus_power: >
           {% set surplus = pv_forecast_power - home_consumption + charging_power %}
           {{ [surplus, 0] | max | round(0) }}
@@ -59,9 +59,9 @@ pv_daily_charge_handler:
           {% if target_soc <= auto_soc or departure is none or time_hours <= 0 %}
             0
           {% elif force_charge_required %}
-            {{ [pv_surplus_power, min_required_power] | max }}
+            {{ [available_charge_power, min_required_power] | max }}
           {% else %}
-            {{ pv_surplus_power }}
+            {{ available_charge_power }}
           {% endif %}
         desired_mode: >-
           {{ 'Force_3' if target_power >= 4000 else 'Force_1' }}
@@ -85,13 +85,17 @@ pv_daily_charge_handler:
           {% else %}
             {{ current_limit }}
           {% endif %}
-        desired_force_state: "{{ 'Neutral' if target_power > 0 else 'Off' }}"
+        charge_permitted: >
+          {{ force_charge_required or
+             (force_state == 'Neutral' and not pv_stop_required) or
+             (force_state != 'Neutral' and pv_start_ready) }}
+        desired_force_state: "{{ 'Neutral' if charge_permitted else 'Off' }}"
         needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
         can_update: "{{ starting_session or (mode_stable and limit_stable) }}"
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ target_power > 0 }}"
+              value_template: "{{ target_soc > auto_soc and departure is not none and time_hours > 0 and charge_permitted }}"
           sequence:
             - choose:
                 - conditions:

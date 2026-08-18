@@ -15,10 +15,14 @@
         - 'Wait_Car'
         - 'Charging'
       id: car_connected
+    - platform: state
+      entity_id: input_button.pv_apply_estimated_auto_soc_correction
+      id: correction_applied
   condition:
     - condition: template
       value_template: >
-        {{ trigger.id in ['charging_started', 'car_connected'] or
+        {{ trigger.id == 'correction_applied' or
+           trigger.id in ['charging_started', 'car_connected'] or
            (trigger.id == 'soc_updated' and
             states('sensor.go_echarger_325099_power_total') | float(0) > 100) }}
   action:
@@ -26,7 +30,14 @@
       target:
         entity_id: input_number.charge_session_start_soc
       data:
-        value: "{{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}"
+        value: >
+          {% if trigger.id == 'correction_applied' %}
+            {% set estimate = states('sensor.pv_estimated_auto_soc') | float(0) %}
+            {% set correction = states('input_number.pv_estimated_auto_soc_correction') | float(0) %}
+            {{ [100, [0, estimate + correction] | max] | min }}
+          {% else %}
+            {{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}
+          {% endif %}
     - service: input_number.set_value
       target:
         entity_id: input_number.charge_session_start_energy

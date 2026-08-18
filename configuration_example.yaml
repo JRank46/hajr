@@ -5,6 +5,7 @@ input_number: !include helpers/input_number.yaml
 input_datetime: !include helpers/input_datetime.yaml
 input_boolean: !include helpers/input_boolean.yaml
 input_select: !include helpers/input_select.yaml
+input_button: !include helpers/input_button.yaml
 script: !include_dir_merge_named scripts
 template: !include sensors/pv_charge_estimates.yaml
 

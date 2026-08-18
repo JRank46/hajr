@@ -1,11 +1,20 @@
-pv_surplus_threshold:
-  name: PV Überschuss-Schwelle
+pv_net_surplus_start_threshold:
+  name: PV-Netzüberschuss Einschaltschwelle
   min: 0
-  max: 10000
+  max: 2000
   step: 100
   unit_of_measurement: W
   icon: mdi:solar-power
-  initial: 800
+  initial: 750
+
+pv_net_surplus_stop_threshold:
+  name: PV-Netzüberschuss Ausschaltschwelle
+  min: -2000
+  max: 0
+  step: 100
+  unit_of_measurement: W
+  icon: mdi:solar-power
+  initial: -500
 
 target_soc:
   name: Ziel SOC
@@ -116,14 +125,14 @@ adhoc_target_soc:
   unit_of_measurement: '%'
   initial: 80
 
-adhoc_charge_current_limit:
+adhoc_charge_power_limit:
   name: Adhoc Maximale Ladeleistung
-  min: 6
-  max: 16
-  step: 1
-  unit_of_measurement: A
+  min: 1380
+  max: 11040
+  step: 690
+  unit_of_measurement: W
   icon: mdi:flash
-  initial: 16
+  initial: 11040
 
 charge_session_start_soc:
   name: Ladesitzung Start-SOC (intern)
@@ -144,7 +153,7 @@ charge_session_start_energy:
   initial: 0
 
 pv_estimated_auto_soc_correction:
-  name: SOC-Schätzer Korrektur
+  name: SOC-Schätzer Korrektur (Delta)
   min: -20
   max: 20
   step: 0.1
