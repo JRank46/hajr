@@ -1,0 +1,6 @@
+- platform: group
+  name: notify
+  services:
+    - service: mobile_app_pizzaiolo_sepp
+    - service: mobile_app_ipadpro_jr
+    - service: mobile_app_apfel

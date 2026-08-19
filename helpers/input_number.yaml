@@ -34,6 +34,15 @@ home_storage_capacity:
   icon: mdi:factory
   initial: 16
 
+home_storage_soc_round_down_threshold:
+  name: Home Speicher SOC Abrunden-Schwelle
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  icon: mdi:battery-arrow-down-outline
+  initial: 60
+
 auto_battery_capacity:
   name: Auto Batterie Kapazität
   min: 1

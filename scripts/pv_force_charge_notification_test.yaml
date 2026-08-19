@@ -1,0 +1,55 @@
+pv_force_charge_notification_test:
+  alias: PV Zwangsladung Testnachricht
+  mode: single
+  sequence:
+    - variables:
+        next_day: >-
+          {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+          {% set today = now().weekday() %}
+          {{ 1 if now() >= today_at(states('input_datetime.daily_charge_time_' + days[today])) else 0 }}
+        weekday: "{{ (now().weekday() + (next_day | int)) % 7 }}"
+        weekday_name: >-
+          {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+          {{ days[weekday] }}
+        departure: "{{ today_at(states('input_datetime.daily_charge_time_' + weekday_name)) + timedelta(days=next_day | int) }}"
+        target_soc: >-
+          {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+          {{ states('input_number.daily_target_soc_' + days[weekday]) | float(0) }}
+        auto_soc: "{{ states('sensor.pv_estimated_auto_soc') | float(0) }}"
+        battery_capacity_kwh: "{{ states('input_number.auto_battery_capacity') | float(38.5) }}"
+        energy_needed_wh: >-
+          {% set difference = target_soc - auto_soc %}
+          {{ (difference / 100 * battery_capacity_kwh * 1000) if difference > 0 else 0 }}
+    - service: persistent_notification.create
+      data:
+        title: 'PV Tagesladung'
+        message: >
+          Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
+          zur gewünschten Abfahrtszeit {{ as_datetime(departure).strftime('%d.%m.%Y %H:%M') }} mit PV-Überschuss geladen werden.
+          Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
+          zum Zeitpunkt {{ now().strftime('%d.%m.%Y %H:%M') }} durchgeführt.
+        notification_id: pv_force_charge_notification
+    - service: notify.mobile_app_pizzaiolo_sepp
+      data:
+        title: 'PV Tagesladung'
+        message: >
+          Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
+          zur gewünschten Abfahrtszeit {{ as_datetime(departure).strftime('%d.%m.%Y %H:%M') }} mit PV-Überschuss geladen werden.
+          Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
+          zum Zeitpunkt {{ now().strftime('%d.%m.%Y %H:%M') }} durchgeführt.
+        data:
+          push:
+            interruption-level: time-sensitive
+            sound: default
+    - service: notify.mobile_app_apfel
+      data:
+        title: 'PV Tagesladung'
+        message: >
+          Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
+          zur gewünschten Abfahrtszeit {{ as_datetime(departure).strftime('%d.%m.%Y %H:%M') }} mit PV-Überschuss geladen werden.
+          Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
+          zum Zeitpunkt {{ now().strftime('%d.%m.%Y %H:%M') }} durchgeführt.
+        data:
+          push:
+            interruption-level: time-sensitive
+            sound: default

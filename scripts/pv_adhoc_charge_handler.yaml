@@ -16,7 +16,11 @@ pv_adhoc_charge_handler:
         adhoc_mode: "{{ states('input_select.adhoc_charge_mode') }}"
         adhoc_max_power: "{{ states('input_number.adhoc_charge_power_limit') | float(11040) }}"
         adhoc_max_limit: "{{ (adhoc_max_power / 690) | round(0, 'floor') | int }}"
-        surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+        configured_surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+        home_storage_soc: "{{ states('sensor.hvm_ladezustand') | float(0) }}"
+        home_storage_round_down_threshold: "{{ states('input_number.home_storage_soc_round_down_threshold') | float(60) }}"
+        home_storage_rounding_forced: "{{ home_storage_soc >= home_storage_round_down_threshold }}"
+        surplus_current_rounding: "{{ 'Abrunden' if home_storage_rounding_forced else configured_surplus_current_rounding }}"
         current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -139,20 +143,6 @@ pv_adhoc_charge_handler:
                                 entity_id: select.go_echarger_325099_force_state
                               data:
                                 option: 'Neutral'
-                    - service: persistent_notification.create
-                      data:
-                        title: 'PV Adhocladung'
-                        message: >
-                          Lade-Einstellung aktualisiert auf {{ desired_mode }} / {{ desired_limit }} A und Force-State = Neutral.
-                - conditions:
-                    - condition: template
-                      value_template: "{{ needs_update and not can_update }}"
-                  sequence:
-                    - service: persistent_notification.create
-                      data:
-                        title: 'PV Adhocladung'
-                        message: >
-                          Phase/Strom warten 5 Minuten Stabilität, bevor ein erneuter Wechsel erfolgt.
       default:
         - choose:
             - conditions:
@@ -165,7 +155,3 @@ pv_adhoc_charge_handler:
                     entity_id: select.go_echarger_325099_force_state
                   data:
                     option: 'Off'
-        - service: persistent_notification.create
-          data:
-            title: 'PV Adhocladung'
-            message: 'Kein Ladebedarf oder Abfahrt vorbei.'

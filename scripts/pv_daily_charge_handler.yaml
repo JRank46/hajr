@@ -25,7 +25,13 @@ pv_daily_charge_handler:
         force_state: "{{ states('select.go_echarger_325099_force_state') }}"
         car_state: "{{ states('sensor.go_echarger_325099_car_state') }}"
         restart_latched: "{{ is_state('input_boolean.wallbox_restart_latched', 'on') }}"
-        surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+        force_charge_suspended: "{{ is_state('input_boolean.daily_force_charge_suspended', 'on') }}"
+        force_charge_notification_sent: "{{ is_state('input_boolean.daily_force_charge_notification_sent', 'on') }}"
+        configured_surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+        home_storage_soc: "{{ states('sensor.hvm_ladezustand') | float(0) }}"
+        home_storage_round_down_threshold: "{{ states('input_number.home_storage_soc_round_down_threshold') | float(60) }}"
+        home_storage_rounding_forced: "{{ home_storage_soc >= home_storage_round_down_threshold }}"
+        surplus_current_rounding: "{{ 'Abrunden' if home_storage_rounding_forced else configured_surplus_current_rounding }}"
         current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -54,7 +60,8 @@ pv_daily_charge_handler:
             0
           {% endif %}
         departure_imminent: "{{ time_hours <= 1 }}"
-        force_charge_required: "{{ departure_imminent and forecast_surplus_power < min_required_power }}"
+        force_charge_needed: "{{ departure_imminent and forecast_surplus_power < min_required_power }}"
+        force_charge_required: "{{ force_charge_needed and not force_charge_suspended }}"
         target_power: >
           {% if target_soc <= auto_soc or departure is none or time_hours <= 0 %}
             0
@@ -93,6 +100,51 @@ pv_daily_charge_handler:
         needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
         can_update: "{{ starting_session or (mode_stable and limit_stable) }}"
     - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ force_charge_needed and not force_charge_suspended and not force_charge_notification_sent and target_soc > auto_soc }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: 'PV Tagesladung'
+                message: >
+                  Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
+                  zur gewünschten Abfahrtszeit {{ departure.strftime('%d.%m.%Y %H:%M') }} mit PV-Überschuss geladen werden.
+                  Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
+                  zum Zeitpunkt {{ now().strftime('%d.%m.%Y %H:%M') }} durchgeführt.
+                notification_id: pv_force_charge_notification
+            - service: notify.mobile_app_pizzaiolo_sepp
+              data:
+                title: 'PV Tagesladung'
+                message: >
+                  Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
+                  zur gewünschten Abfahrtszeit {{ departure.strftime('%d.%m.%Y %H:%M') }} mit PV-Überschuss geladen werden.
+                  Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
+                  zum Zeitpunkt {{ now().strftime('%d.%m.%Y %H:%M') }} durchgeführt.
+                data:
+                  push:
+                    interruption-level: time-sensitive
+                    sound: default
+            - service: notify.mobile_app_apfel
+              data:
+                title: 'PV Tagesladung'
+                message: >
+                  Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
+                  zur gewünschten Abfahrtszeit {{ departure.strftime('%d.%m.%Y %H:%M') }} mit PV-Überschuss geladen werden.
+                  Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
+                  zum Zeitpunkt {{ now().strftime('%d.%m.%Y %H:%M') }} durchgeführt.
+                data:
+                  push:
+                    interruption-level: time-sensitive
+                    sound: default
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.daily_force_charge_notification_sent
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.daily_force_charge_cycle_until
+              data:
+                datetime: "{{ departure.strftime('%Y-%m-%d %H:%M:%S') }}"
         - conditions:
             - condition: template
               value_template: "{{ target_soc > auto_soc and departure is not none and time_hours > 0 and charge_permitted }}"
@@ -160,27 +212,9 @@ pv_daily_charge_handler:
                                 entity_id: select.go_echarger_325099_force_state
                               data:
                                 option: 'Neutral'
-                    - service: persistent_notification.create
-                      data:
-                        title: 'PV Tagesladung'
-                        message: >
-                          Lade-Einstellung aktualisiert auf {{ desired_mode }} / {{ desired_limit }} A und Force-State = Neutral.
-                - conditions:
-                    - condition: template
-                      value_template: "{{ needs_update and not can_update }}"
-                  sequence:
-                    - service: persistent_notification.create
-                      data:
-                        title: 'PV Tagesladung'
-                        message: >
-                          Phase/Strom warten 5 Minuten Stabilität, bevor ein erneuter Wechsel erfolgt.
       default:
         - service: select.select_option
           target:
             entity_id: select.go_echarger_325099_force_state
           data:
             option: 'Off'
-        - service: persistent_notification.create
-          data:
-            title: 'PV Tagesladung'
-            message: 'Kein Ladebedarf oder Abfahrt vorbei.'

@@ -14,6 +14,8 @@ views:
             name: Tägliches Laden
           - entity: input_boolean.adhoc_charging_enabled
             name: Adhoc Laden
+          - entity: input_boolean.daily_force_charge_suspended
+            name: Zwangsladung aussetzen
           - entity: input_number.pv_estimated_auto_soc_correction
             name: SOC-Schätzer Korrektur (Delta)
           - entity: input_button.pv_apply_estimated_auto_soc_correction
@@ -35,6 +37,8 @@ views:
             name: Adhoc Ziel-SOC
           - entity: input_number.adhoc_charge_power_limit
             name: Adhoc Maximale Ladeleistung
+          - entity: input_number.home_storage_soc_round_down_threshold
+            name: Homespeicher-SOC für Abrunden
       - type: entities
         title: Aktueller Status
         entities:
@@ -149,6 +153,12 @@ views:
             name: Berechnete Ziel-Ladeleistung
           - entity: sensor.pv_charge_available_power
             name: Für Ladung verfügbare Leistung
+          - type: button
+            name: Zwangsladung Testnachricht senden
+            icon: mdi:bell-ring
+            tap_action:
+              action: perform-action
+              perform_action: script.pv_force_charge_notification_test
           - type: attribute
             entity: sensor.pv_daily_debug
             attribute: force_charge_required

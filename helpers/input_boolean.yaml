@@ -6,6 +6,14 @@ adhoc_charging_enabled:
   name: Adhoc Laden aktivieren
   initial: false
 
+daily_force_charge_suspended:
+  name: Zwangsladung aussetzen
+  initial: false
+
+daily_force_charge_notification_sent:
+  name: Zwangsladung Benachrichtigung gesendet (intern)
+  initial: false
+
 wallbox_restart_latched:
   name: Wallbox Neustart ausgelöst (intern)
   initial: false

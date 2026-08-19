@@ -1,3 +1,7 @@
 pv_apply_estimated_auto_soc_correction:
   name: SOC-Schätzer Korrektur übernehmen
   icon: mdi:check
+
+pv_send_force_charge_test_notification:
+  name: Zwangsladung Testnachricht senden
+  icon: mdi:bell-check-outline

@@ -1,0 +1,45 @@
+- alias: 'PV Zwangsladung Aussetzen verwalten'
+  description: 'Ordnet das Aussetzen einer Abfahrt zu und setzt es nach dieser Abfahrt zurück.'
+  trigger:
+    - platform: state
+      entity_id: input_boolean.daily_force_charge_suspended
+      to: 'on'
+      id: suspension_enabled
+    - platform: time_pattern
+      minutes: '/1'
+      id: cycle_check
+  action:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: suspension_enabled
+          sequence:
+            - variables:
+                next_day: >-
+                  {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+                  {% set today = now().weekday() %}
+                  {{ 1 if now() >= today_at(states('input_datetime.daily_charge_time_' + days[today])) else 0 }}
+                weekday: "{{ (now().weekday() + (next_day | int)) % 7 }}"
+                weekday_name: >-
+                  {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+                  {{ days[weekday] }}
+                departure: "{{ today_at(states('input_datetime.daily_charge_time_' + weekday_name)) + timedelta(days=next_day | int) }}"
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.daily_force_charge_cycle_until
+              data:
+                datetime: "{{ departure.strftime('%Y-%m-%d %H:%M:%S') }}"
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ states('input_datetime.daily_force_charge_cycle_until') not in ['unknown', 'unavailable', 'none'] and
+                   as_timestamp(now()) >= as_timestamp(states('input_datetime.daily_force_charge_cycle_until')) and
+                   (is_state('input_boolean.daily_force_charge_suspended', 'on') or
+                    is_state('input_boolean.daily_force_charge_notification_sent', 'on')) }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.daily_force_charge_suspended
+                  - input_boolean.daily_force_charge_notification_sent
+  mode: single
