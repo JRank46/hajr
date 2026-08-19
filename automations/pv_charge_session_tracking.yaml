@@ -32,9 +32,7 @@
       data:
         value: >
           {% if trigger.id == 'correction_applied' %}
-            {% set estimate = states('sensor.pv_estimated_auto_soc') | float(0) %}
-            {% set correction = states('input_number.pv_estimated_auto_soc_correction') | float(0) %}
-            {{ [100, [0, estimate + correction] | max] | min }}
+            {{ states('input_number.pv_estimated_auto_soc_correction') | float(0) }}
           {% else %}
             {{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}
           {% endif %}
@@ -43,9 +41,4 @@
         entity_id: input_number.charge_session_start_energy
       data:
         value: "{{ states('sensor.go_echarger_325099_energy_charged') | float(0) }}"
-    - service: input_number.set_value
-      target:
-        entity_id: input_number.pv_estimated_auto_soc_correction
-      data:
-        value: 0
   mode: single

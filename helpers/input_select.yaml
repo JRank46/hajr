@@ -10,4 +10,4 @@ pv_surplus_current_rounding:
   options:
     - Abrunden
     - Aufrunden
-  initial: Abrunden
+  initial: Aufrunden

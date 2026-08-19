@@ -17,9 +17,9 @@ views:
           - entity: input_boolean.daily_force_charge_suspended
             name: Zwangsladung aussetzen
           - entity: input_number.pv_estimated_auto_soc_correction
-            name: SOC-Schätzer Korrektur (Delta)
+            name: SOC-Schätzer Vorgabe
           - entity: input_button.pv_apply_estimated_auto_soc_correction
-            name: SOC-Schätzer Korrektur übernehmen
+            name: SOC-Schätzer Vorgabe übernehmen
           - entity: sensor.pv_estimated_auto_soc
             name: SOC-Wert (live geschätzt)
       - type: entities
@@ -216,9 +216,9 @@ views:
           - entity: sensor.pv_estimated_auto_soc
             name: Fahrzeug-SOC geschätzt
           - entity: input_number.pv_estimated_auto_soc_correction
-            name: Vorgemerkte SOC-Korrektur (Delta)
+            name: Vorgemerkte SOC-Vorgabe
           - entity: input_button.pv_apply_estimated_auto_soc_correction
-            name: SOC-Korrektur übernehmen
+            name: SOC-Vorgabe übernehmen
           - entity: input_number.charge_session_start_soc
             name: SOC-Basis der Ladesitzung
           - entity: input_number.charge_session_start_energy
