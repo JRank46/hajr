@@ -88,6 +88,9 @@
         {% set energy_needed_wh = ([daily_target_soc - current, 0] | max) / 100 * capacity_wh %}
         {% set min_required_power = (energy_needed_wh / time_hours) | round(0, 'ceil') if time_hours > 0 else 0 %}
           {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
+          {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+            current < daily_target_soc and force_start_at not in ['unknown', 'unavailable', 'none'] and
+            as_timestamp(now()) < as_timestamp(force_start_at) %}
           {% set force_required = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
             current < daily_target_soc and force_start_at not in ['unknown', 'unavailable', 'none'] and
             as_timestamp(now()) >= as_timestamp(force_start_at) %}
@@ -95,7 +98,7 @@
         {% if adhoc_enabled %}
           {{ (adhoc_power if (adhoc_mode == 'Maximale Ladeleistung' and states('input_number.adhoc_target_soc') | float(0) > current) else (available if (adhoc_mode == 'Nur PV-Überschuss' and states('input_number.adhoc_target_soc') | float(0) > current) else 0)) | round(0) }}
         {% elif daily_enabled %}
-          {{ ([available, min_required_power] | max if (force_required and not force_suspended) else available) | round(0) }}
+          {{ (11040 if (force_required and not force_suspended) else available) | round(0) }}
         {% else %}
           0
         {% endif %}
@@ -104,7 +107,26 @@
       state: >
         {% set available = states('sensor.pv_charge_available_power') | float(0) %}
         {% set target = states('sensor.pv_charge_target_power') | float(0) %}
-        {{ 'Bereit' if target <= 0 else ('PV Überschuss' if available >= target else 'Zwangsladung') }}
+        {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
+        {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+           force_start_at not in ['unknown', 'unavailable', 'none'] and
+           as_timestamp(now()) < as_timestamp(force_start_at) %}
+        {{ 'Zwangsladung geplant' if force_planned else ('Bereit' if target <= 0 else ('PV Überschuss' if available >= target else 'Zwangsladung')) }}
+
+    - name: "pv_force_charge_status"
+      unique_id: pv_force_charge_status
+      icon: mdi:flash-alert
+      state: >
+        {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
+        {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+           force_start_at not in ['unknown', 'unavailable', 'none'] %}
+        {% if not force_planned %}
+          keine Zwangsladung geplant
+        {% elif as_timestamp(now()) < as_timestamp(force_start_at) %}
+          Zwangsladung geplant um {{ as_datetime(force_start_at).strftime('%H:%M') }} Uhr
+        {% else %}
+          Zwangsladung aktiv seit {{ as_datetime(force_start_at).strftime('%H:%M') }} Uhr
+        {% endif %}
 
   binary_sensor:
     - name: "pv_charge_start_ready"
@@ -336,9 +358,10 @@
          force_charge_start_at not in ['unknown', 'unavailable', 'none'] and
          as_timestamp(now()) >= as_timestamp(force_charge_start_at) }}
     force_charge_required: "{{ force_charge_due and car_state != 'Complete' }}"
+    force_charge_power: 11040
     target_power: >
       {% if force_charge_required %}
-        {{ [pv_surplus_power, min_required_power] | max }}
+        {{ force_charge_power }}
       {% else %}
         {{ pv_surplus_power }}
       {% endif %}

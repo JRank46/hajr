@@ -43,7 +43,6 @@ pv_daily_charge_handler:
         available_charge_power: "{{ states('sensor.pv_charge_available_power') | float(0) }}"
         pv_start_ready: "{{ is_state('binary_sensor.pv_charge_start_ready', 'on') }}"
         pv_stop_required: "{{ is_state('binary_sensor.pv_charge_stop_required', 'on') }}"
-        current_hour_pv_forecast_wh: "{{ states('sensor.solcast_pv_forecast_prognose_aktuelle_stunde') | float(0) }}"
         forecast_surplus_power: >
           {% set surplus = pv_forecast_power - home_consumption + charging_power %}
           {{ [surplus, 0] | max | round(0) }}
@@ -65,15 +64,15 @@ pv_daily_charge_handler:
             0
           {% endif %}
         target_reached: "{{ auto_soc >= target_soc }}"
-        force_charge_notification_required: "{{ current_hour_pv_forecast_wh < 500 and not target_reached and not force_charge_suspended and not force_charge_notification_sent }}"
         force_charge_due: >-
           {{ force_charge_notification_sent and not target_reached and not force_charge_suspended and
              force_charge_start_at not in ['unknown', 'unavailable', 'none'] and
              as_timestamp(now()) >= as_timestamp(force_charge_start_at) }}
         force_charge_required: "{{ force_charge_due and car_state != 'Complete' }}"
+        force_charge_power: 11040
         target_power: >
           {% if force_charge_required %}
-            {{ [available_charge_power, min_required_power] | max }}
+            {{ force_charge_power }}
           {% else %}
             {{ available_charge_power }}
           {% endif %}
@@ -134,56 +133,6 @@ pv_daily_charge_handler:
               target:
                 entity_id: input_boolean.phase_switch_to_1_pending
     - choose:
-        - conditions:
-            - condition: template
-              value_template: "{{ force_charge_notification_required }}"
-          sequence:
-            - service: persistent_notification.create
-              data:
-                title: 'PV Tagesladung'
-                message: >
-                  Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
-                  mit der PV-Prognose der aktuellen Stunde von {{ (current_hour_pv_forecast_wh / 1000) | round(1) }} kWh geladen werden.
-                  Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
-                  ab {{ (now() + timedelta(hours=1)).strftime('%d.%m.%Y %H:%M') }} durchgeführt.
-                notification_id: pv_force_charge_notification
-            - service: notify.mobile_app_pizzaiolo_sepp
-              data:
-                title: 'PV Tagesladung'
-                message: >
-                  Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
-                  mit der PV-Prognose der aktuellen Stunde von {{ (current_hour_pv_forecast_wh / 1000) | round(1) }} kWh geladen werden.
-                  Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
-                  ab {{ (now() + timedelta(hours=1)).strftime('%d.%m.%Y %H:%M') }} durchgeführt.
-                data:
-                  push:
-                    interruption-level: time-sensitive
-                    sound: default
-            - service: notify.mobile_app_apfel
-              data:
-                title: 'PV Tagesladung'
-                message: >
-                  Mini Aceman E konnte nicht bis zum gewünschten {{ target_soc | round(0) }} % SOC
-                  mit der PV-Prognose der aktuellen Stunde von {{ (current_hour_pv_forecast_wh / 1000) | round(1) }} kWh geladen werden.
-                  Es wird eine Zwangsladung von {{ (energy_needed_wh / 1000) | round(1) }} kWh
-                  ab {{ (now() + timedelta(hours=1)).strftime('%d.%m.%Y %H:%M') }} durchgeführt.
-                data:
-                  push:
-                    interruption-level: time-sensitive
-                    sound: default
-            - service: input_boolean.turn_on
-              target:
-                entity_id: input_boolean.daily_force_charge_notification_sent
-            - service: input_datetime.set_datetime
-              target:
-                entity_id: input_datetime.daily_force_charge_cycle_until
-              data:
-                datetime: "{{ departure.strftime('%Y-%m-%d %H:%M:%S') }}"
-            - service: input_datetime.set_datetime
-              target:
-                entity_id: input_datetime.daily_force_charge_start_at
-              data:
-                datetime: "{{ (now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
         - conditions:
             - condition: template
               value_template: "{{ force_charge_due and car_state == 'Complete' and now().strftime('%H:%M:%S') == '21:00:00' and not force_charge_complete_notification_2100_sent }}"

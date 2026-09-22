@@ -62,6 +62,8 @@ views:
             name: SOC Homespeicher
           - entity: select.go_echarger_325099_force_state
             name: Wallbox Ansteuerungs Status
+          - entity: sensor.pv_force_charge_status
+            name: Zwangsladung
       - type: entities
         title: Prognosen & Status
         entities:
