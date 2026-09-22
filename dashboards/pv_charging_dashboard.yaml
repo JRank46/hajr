@@ -293,8 +293,8 @@ views:
             name: Nächste Abfahrt
           - type: attribute
             entity: sensor.pv_daily_debug
-            attribute: forecast_surplus_power_w
-            name: Prognoseüberschuss
+            attribute: remaining_pv_forecast_wh
+            name: PV-Prognose verbleibend heute
           - type: attribute
             entity: sensor.pv_daily_debug
             attribute: force_charge_required

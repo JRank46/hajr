@@ -42,4 +42,6 @@
                 entity_id:
                   - input_boolean.daily_force_charge_suspended
                   - input_boolean.daily_force_charge_notification_sent
+                  - input_boolean.daily_force_charge_complete_notification_2100_sent
+                  - input_boolean.daily_force_charge_complete_notification_2130_sent
   mode: single

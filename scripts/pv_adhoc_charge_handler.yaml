@@ -23,6 +23,8 @@ pv_adhoc_charge_handler:
         surplus_current_rounding: "{{ 'Abrunden' if home_storage_rounding_forced else configured_surplus_current_rounding }}"
         current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
+        phase_switch_to_1_pending: "{{ is_state('input_boolean.phase_switch_to_1_pending', 'on') }}"
+        phase_switch_to_1_requested_at: "{{ states('input_datetime.phase_switch_to_1_requested_at') }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
         limit_stable: "{{ (now() - states.number.go_echarger_325099_set_max_ampere_limit.last_changed).total_seconds() >= 300 }}"
         available_charge_power: "{{ states('sensor.pv_charge_available_power') | float(0) }}"
@@ -45,6 +47,11 @@ pv_adhoc_charge_handler:
           {% endif %}
         desired_mode: >-
           {{ 'Force_3' if (adhoc_mode == 'Maximale Ladeleistung' and target_power > 0) or target_power >= 4000 else 'Force_1' }}
+        phase_switch_to_1_requested: "{{ current_mode == 'Force_3' and desired_mode == 'Force_1' }}"
+        phase_switch_to_1_due: >-
+          {{ phase_switch_to_1_pending and
+             phase_switch_to_1_requested_at not in ['unknown', 'unavailable', 'none'] and
+             (as_timestamp(now()) - as_timestamp(phase_switch_to_1_requested_at)) >= 1800 }}
         starting_session: "{{ force_state != 'Neutral' }}"
         base_limit: >
           {% if target_power >= 4000 %}
@@ -75,6 +82,26 @@ pv_adhoc_charge_handler:
         needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
         can_update: "{{ starting_session or (mode_stable and limit_stable) }}"
         charger_should_charge: "{{ adhoc_mode in ['Nur PV-Überschuss', 'Maximale Ladeleistung', 'Auto'] }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ phase_switch_to_1_requested and not phase_switch_to_1_pending }}"
+          sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.phase_switch_to_1_pending
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.phase_switch_to_1_requested_at
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        - conditions:
+            - condition: template
+              value_template: "{{ not phase_switch_to_1_requested and phase_switch_to_1_pending }}"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.phase_switch_to_1_pending
     - choose:
         - conditions:
             - condition: template
@@ -116,7 +143,7 @@ pv_adhoc_charge_handler:
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ current_mode != desired_mode }}"
+                              value_template: "{{ current_mode != desired_mode and (not phase_switch_to_1_requested or phase_switch_to_1_due) }}"
                           sequence:
                             - service: select.select_option
                               target:
