@@ -95,7 +95,7 @@
         {% set force_suspended = is_state('input_boolean.daily_force_charge_suspended', 'on') %}
         {% if adhoc_enabled %}
           {{ (adhoc_power if (adhoc_mode == 'Maximale Ladeleistung' and states('input_number.adhoc_target_soc') | float(0) > current) else (available if (adhoc_mode == 'Nur PV-Überschuss' and states('input_number.adhoc_target_soc') | float(0) > current) else 0)) | round(0) }}
-        {% elif daily_enabled and daily_target_soc > current and time_hours > 0 %}
+        {% elif daily_enabled %}
           {{ ([available, min_required_power] | max if (force_required and not force_suspended) else available) | round(0) }}
         {% else %}
           0
@@ -331,9 +331,7 @@
     departure_imminent: "{{ time_hours <= 1 }}"
     force_charge_required: "{{ departure_imminent and forecast_surplus_power < min_required_power }}"
     target_power: >
-      {% if target_soc <= auto_soc or departure is none or time_hours <= 0 %}
-        0
-      {% elif force_charge_required %}
+      {% if force_charge_required %}
         {{ [pv_surplus_power, min_required_power] | max }}
       {% else %}
         {{ pv_surplus_power }}
