@@ -39,3 +39,18 @@ daily_charge_time_sunday:
   has_date: false
   has_time: true
   initial: "09:00:00"
+
+daily_force_charge_cycle_until:
+  name: Zwangsladung Zyklusende (intern)
+  has_date: true
+  has_time: true
+
+daily_force_charge_start_at:
+  name: Zwangsladung Startzeitpunkt (intern)
+  has_date: true
+  has_time: true
+
+phase_switch_to_1_requested_at:
+  name: Phasenwechsel auf 1 Phase angefordert (intern)
+  has_date: true
+  has_time: true

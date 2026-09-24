@@ -1,11 +1,20 @@
-pv_surplus_threshold:
-  name: PV Überschuss-Schwelle
+pv_net_surplus_start_threshold:
+  name: PV-Netzüberschuss Einschaltschwelle
   min: 0
-  max: 10000
+  max: 2000
   step: 100
   unit_of_measurement: W
   icon: mdi:solar-power
-  initial: 800
+  initial: 750
+
+pv_net_surplus_stop_threshold:
+  name: PV-Netzüberschuss Ausschaltschwelle
+  min: -2000
+  max: 0
+  step: 100
+  unit_of_measurement: W
+  icon: mdi:solar-power
+  initial: -500
 
 target_soc:
   name: Ziel SOC
@@ -24,6 +33,15 @@ home_storage_capacity:
   unit_of_measurement: kWh
   icon: mdi:factory
   initial: 16
+
+home_storage_soc_round_down_threshold:
+  name: Home Speicher SOC Abrunden-Schwelle
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  icon: mdi:battery-arrow-down-outline
+  initial: 60
 
 auto_battery_capacity:
   name: Auto Batterie Kapazität
@@ -116,14 +134,14 @@ adhoc_target_soc:
   unit_of_measurement: '%'
   initial: 80
 
-adhoc_charge_current_limit:
+adhoc_charge_power_limit:
   name: Adhoc Maximale Ladeleistung
-  min: 6
-  max: 16
-  step: 1
-  unit_of_measurement: A
+  min: 1380
+  max: 11040
+  step: 690
+  unit_of_measurement: W
   icon: mdi:flash
-  initial: 16
+  initial: 11040
 
 charge_session_start_soc:
   name: Ladesitzung Start-SOC (intern)
@@ -141,4 +159,13 @@ charge_session_start_energy:
   step: 1
   unit_of_measurement: Wh
   icon: mdi:counter
+  initial: 0
+
+pv_estimated_auto_soc_correction:
+  name: SOC-Schätzer Vorgabe
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: '%'
+  icon: mdi:battery-edit-outline
   initial: 0

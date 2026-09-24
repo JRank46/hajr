@@ -17,7 +17,7 @@ ENTITY_IDS = (
     "input_boolean.wallbox_restart_latched",
     "input_select.adhoc_charge_mode",
     "input_number.adhoc_target_soc",
-    "input_number.adhoc_charge_current_limit",
+    "input_number.adhoc_charge_power_limit",
     "sensor.aceman_e_battery_hv_state_of_charge",
     "sensor.aceman_e_battery_ev_target_state_of_charge",
     "sensor.pv_estimated_auto_soc",

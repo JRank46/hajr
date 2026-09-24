@@ -30,34 +30,132 @@
       attributes:
         charge_type: >
           {{ 'Adhoc' if is_state('input_boolean.adhoc_charging_enabled', 'on') else ('Täglich' if is_state('input_boolean.daily_charging_enabled', 'on') else 'Keine aktive Ladung') }}
-    - name: "pv_charge_surplus_power"
-      unique_id: pv_charge_surplus_power
+    - name: "pv_net_surplus_power_raw"
+      unique_id: pv_net_surplus_power_raw
       unit_of_measurement: 'W'
       state: >
         {% set pv = states('sensor.solarnet_pv_leistung') | float(0) %}
         {% set home = states('sensor.solarnet_leistung_verbrauch') | float(0) %}
+        {{ (pv - home) | round(0) }}
+    - name: "pv_charge_available_power"
+      unique_id: pv_charge_available_power
+      unit_of_measurement: 'W'
+      state: >
+        {% set net_surplus = states('sensor.pv_net_surplus_power_filtered') | float(0) %}
         {% set charging = states('sensor.go_echarger_325099_power_total') | float(0) %}
-        {{ [pv - home + charging, 0] | max | round(0) }}
+        {{ [net_surplus + charging, 0] | max | round(0) }}
+    - name: "pv_charge_house_load_without_wallbox"
+      unique_id: pv_charge_house_load_without_wallbox
+      unit_of_measurement: 'W'
+      state: >
+        {% set home = states('sensor.solarnet_leistung_verbrauch') | float(0) %}
+        {% set charging = states('sensor.go_echarger_325099_power_total') | float(0) %}
+        {{ [home - charging, 0] | max | round(0) }}
+    - name: "pv_charge_wallbox_expected_power"
+      unique_id: pv_charge_wallbox_expected_power
+      unit_of_measurement: 'W'
+      state: >
+        {% set force_state = states('select.go_echarger_325099_force_state') %}
+        {% set mode = states('select.go_echarger_325099_phase_switch_mode') %}
+        {% set limit = states('number.go_echarger_325099_set_max_ampere_limit') | float(0) %}
+        {% set phases = 3 if mode == 'Force_3' else 1 %}
+        {{ (limit * 230 * phases) | round(0) if force_state == 'Neutral' else 0 }}
+    - name: "pv_charge_wallbox_power_delta"
+      unique_id: pv_charge_wallbox_power_delta
+      unit_of_measurement: 'W'
+      state: >
+        {% set expected = states('sensor.pv_charge_wallbox_expected_power') | float(0) %}
+        {% set actual = states('sensor.go_echarger_325099_power_total') | float(0) %}
+        {{ (expected - actual) | round(0) }}
     - name: "pv_charge_target_power"
       unique_id: pv_charge_target_power
       unit_of_measurement: 'W'
       state: >
-        {% set target_soc = states('input_number.adhoc_target_soc') | float(0) %}
         {% set current = states('sensor.pv_estimated_auto_soc') | float(0) %}
-        {% set pv = states('sensor.solarnet_pv_leistung') | float(0) %}
-        {% set home = states('sensor.solarnet_leistung_verbrauch') | float(0) %}
-        {% set charging = states('sensor.go_echarger_325099_power_total') | float(0) %}
-        {% set surplus = [pv - home + charging, 0] | max %}
+        {% set available = states('sensor.pv_charge_available_power') | float(0) %}
         {% set adhoc_mode = states('input_select.adhoc_charge_mode') %}
-        {% set adhoc_limit = states('input_number.adhoc_charge_current_limit') | int %}
+        {% set adhoc_power = states('input_number.adhoc_charge_power_limit') | float(11040) %}
         {% set adhoc_enabled = is_state('input_boolean.adhoc_charging_enabled', 'on') %}
-        {{ ((adhoc_limit * 230 * 3) if (adhoc_enabled and adhoc_mode == 'Maximale Ladeleistung' and target_soc > current) else (surplus if (adhoc_enabled and adhoc_mode == 'Nur PV-Überschuss' and target_soc > current) else 0)) | round(0) }}
+        {% set daily_enabled = is_state('input_boolean.daily_charging_enabled', 'on') %}
+        {% set days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+        {% set today = now().weekday() %}
+        {% set next_day = 1 if now() >= today_at(states('input_datetime.daily_charge_time_' + days[today])) else 0 %}
+        {% set weekday = (today + next_day) % 7 %}
+        {% set daily_target_soc = states('input_number.daily_target_soc_' + days[weekday]) | float(0) %}
+        {% set departure = today_at(states('input_datetime.daily_charge_time_' + days[weekday])) + timedelta(days=next_day) %}
+        {% set time_hours = (as_timestamp(departure) - as_timestamp(now())) / 3600 %}
+        {% set capacity_wh = states('input_number.auto_battery_capacity') | float(38.5) * 1000 %}
+        {% set energy_needed_wh = ([daily_target_soc - current, 0] | max) / 100 * capacity_wh %}
+        {% set min_required_power = (energy_needed_wh / time_hours) | round(0, 'ceil') if time_hours > 0 else 0 %}
+          {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
+          {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+            current < daily_target_soc and force_start_at not in ['unknown', 'unavailable', 'none'] and
+            as_timestamp(now()) < as_timestamp(force_start_at) %}
+          {% set force_required = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+            current < daily_target_soc and force_start_at not in ['unknown', 'unavailable', 'none'] and
+            as_timestamp(now()) >= as_timestamp(force_start_at) %}
+        {% set force_suspended = is_state('input_boolean.daily_force_charge_suspended', 'on') %}
+        {% if adhoc_enabled %}
+          {{ (adhoc_power if (adhoc_mode == 'Maximale Ladeleistung' and states('input_number.adhoc_target_soc') | float(0) > current) else (available if (adhoc_mode == 'Nur PV-Überschuss' and states('input_number.adhoc_target_soc') | float(0) > current) else 0)) | round(0) }}
+        {% elif daily_enabled %}
+          {{ (11040 if (force_required and not force_suspended) else available) | round(0) }}
+        {% else %}
+          0
+        {% endif %}
     - name: "pv_charge_status"
       unique_id: pv_charge_status
       state: >
-        {% set surplus = states('sensor.pv_charge_surplus_power') | float(0) %}
+        {% set available = states('sensor.pv_charge_available_power') | float(0) %}
         {% set target = states('sensor.pv_charge_target_power') | float(0) %}
-        {{ 'Bereit' if target <= 0 else ('PV Überschuss' if surplus >= target else 'Zwangsladung') }}
+        {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
+        {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+           force_start_at not in ['unknown', 'unavailable', 'none'] and
+           as_timestamp(now()) < as_timestamp(force_start_at) %}
+        {{ 'Zwangsladung geplant' if force_planned else ('Bereit' if target <= 0 else ('PV Überschuss' if available >= target else 'Zwangsladung')) }}
+
+    - name: "pv_force_charge_status"
+      unique_id: pv_force_charge_status
+      icon: mdi:flash-alert
+      state: >
+        {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
+        {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
+           force_start_at not in ['unknown', 'unavailable', 'none'] %}
+        {% if not force_planned %}
+          keine Zwangsladung geplant
+        {% elif as_timestamp(now()) < as_timestamp(force_start_at) %}
+          Zwangsladung geplant um {{ as_datetime(force_start_at).strftime('%H:%M') }} Uhr
+        {% else %}
+          Zwangsladung aktiv seit {{ as_datetime(force_start_at).strftime('%H:%M') }} Uhr
+        {% endif %}
+
+  binary_sensor:
+    - name: "pv_charge_start_ready"
+      unique_id: pv_charge_start_ready
+      state: >
+        {{ states('sensor.pv_net_surplus_power_filtered') | float(-99999) >=
+           states('input_number.pv_net_surplus_start_threshold') | float(750) }}
+      delay_on:
+        seconds: 60
+    - name: "pv_charge_stop_required"
+      unique_id: pv_charge_stop_required
+      state: >
+        {{ states('sensor.pv_net_surplus_power_filtered') | float(99999) <=
+           states('input_number.pv_net_surplus_stop_threshold') | float(-500) }}
+      delay_on:
+        minutes: 5
+
+# Exponentieller Tiefpass: 5-s-Abtastung mit alpha=0,1 ergibt etwa 50 s Zeitkonstante.
+- trigger:
+    - platform: time_pattern
+      seconds: "/5"
+  sensor:
+    - name: "pv_net_surplus_power_filtered"
+      unique_id: pv_net_surplus_power_filtered
+      unit_of_measurement: 'W'
+      state: >
+        {% set raw = states('sensor.pv_net_surplus_power_raw') | float(0) %}
+        {% set previous = this.state | float(raw) %}
+        {{ (previous + 0.1 * (raw - previous)) | round(0) }}
 
 # Debug-Sensoren: spiegeln 1:1 die "variables:"-Berechnung der Handler-Skripte,
 # damit alle Zwischenwerte auf dem Dashboard sichtbar sind, ohne auf ein
@@ -76,7 +174,13 @@
     force_state: "{{ states('select.go_echarger_325099_force_state') }}"
     adhoc_charging_enabled: "{{ states('input_boolean.adhoc_charging_enabled') }}"
     adhoc_mode: "{{ states('input_select.adhoc_charge_mode') }}"
-    adhoc_max_limit: "{{ states('input_number.adhoc_charge_current_limit') | int }}"
+    adhoc_max_power: "{{ states('input_number.adhoc_charge_power_limit') | float(11040) }}"
+    adhoc_max_limit: "{{ (adhoc_max_power / 690) | round(0, 'floor') | int }}"
+    configured_surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+    home_storage_soc: "{{ states('sensor.hvm_ladezustand') | float(0) }}"
+    home_storage_round_down_threshold: "{{ states('input_number.home_storage_soc_round_down_threshold') | float(60) }}"
+    home_storage_rounding_forced: "{{ home_storage_soc >= home_storage_round_down_threshold }}"
+    surplus_current_rounding: "{{ 'Abrunden' if home_storage_rounding_forced else configured_surplus_current_rounding }}"
     current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
     current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
     mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -95,7 +199,7 @@
       {% elif adhoc_mode == 'Nur PV-Überschuss' %}
         {{ pv_surplus_power }}
       {% elif adhoc_mode == 'Maximale Ladeleistung' %}
-        {{ (adhoc_max_limit * 230 * 3) | int }}
+        {{ adhoc_max_power }}
       {% else %}
         0
       {% endif %}
@@ -105,10 +209,10 @@
       {% if adhoc_mode == 'Maximale Ladeleistung' and target_power > 0 %}
         16
       {% elif target_power >= 4000 %}
-        {% set current = (target_power / 690) | round(0, 'ceil') %}
+        {% set current = (target_power / 690) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
         {{ [6, [current, 16] | min] | max }}
       {% else %}
-        {% set current = (target_power / 230) | round(0, 'ceil') %}
+        {% set current = (target_power / 230) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
         {{ [6, [current, 16] | min] | max }}
       {% endif %}
     desired_force_state: "{{ 'Neutral' if target_power > 0 else 'Off' }}"
@@ -122,7 +226,12 @@
       attributes:
         adhoc_charging_enabled: "{{ adhoc_charging_enabled }}"
         adhoc_mode: "{{ adhoc_mode }}"
-        adhoc_max_limit_a: "{{ adhoc_max_limit }}"
+        adhoc_max_power_w: "{{ adhoc_max_power }}"
+        configured_rounding: "{{ configured_surplus_current_rounding }}"
+        effective_rounding: "{{ surplus_current_rounding }}"
+        home_storage_soc_pct: "{{ home_storage_soc }}"
+        home_storage_round_down_threshold_pct: "{{ home_storage_round_down_threshold }}"
+        home_storage_rounding_forced: "{{ home_storage_rounding_forced }}"
         target_soc_pct: "{{ target_soc }}"
         auto_soc_raw_pct: "{{ auto_soc_raw }}"
         auto_soc_fast_estimate_pct: "{{ auto_soc }}"
@@ -170,7 +279,8 @@
         {% set limit = states('number.go_echarger_325099_set_max_ampere_limit') | float(0) %}
         {% set adhoc_mode = states('input_select.adhoc_charge_mode') %}
         {% set desired_mode = 'Force_3' if adhoc_mode == 'Maximale Ladeleistung' or target >= 4000 else 'Force_1' %}
-        {% set desired_limit = (states('input_number.adhoc_charge_current_limit') | int) if adhoc_mode == 'Maximale Ladeleistung' else ([6, [((target / 230) | round(0, 'ceil')), 16] | min] | max) %}
+        {% set adhoc_max_limit = (states('input_number.adhoc_charge_power_limit') | float(11040) / 690) | round(0, 'floor') | int %}
+        {% set desired_limit = adhoc_max_limit if adhoc_mode == 'Maximale Ladeleistung' else ([6, [((target / 230) | round(0, 'ceil')), 16] | min] | max) %}
         {{ 'on' if target > 0 and force == 'Neutral' and mode == desired_mode and limit == desired_limit else 'off' }}
       attributes:
         target_power_w: "{{ target_power }}"
@@ -206,7 +316,16 @@
     auto_soc_raw: "{{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}"
     battery_capacity_kwh: "{{ states('input_number.auto_battery_capacity') | float(38.5) }}"
     force_state: "{{ states('select.go_echarger_325099_force_state') }}"
+    car_state: "{{ states('sensor.go_echarger_325099_car_state') }}"
     daily_charging_enabled: "{{ states('input_boolean.daily_charging_enabled') }}"
+    force_charge_suspended: "{{ is_state('input_boolean.daily_force_charge_suspended', 'on') }}"
+    force_charge_notification_sent: "{{ is_state('input_boolean.daily_force_charge_notification_sent', 'on') }}"
+    force_charge_start_at: "{{ states('input_datetime.daily_force_charge_start_at') }}"
+    configured_surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+    home_storage_soc: "{{ states('sensor.hvm_ladezustand') | float(0) }}"
+    home_storage_round_down_threshold: "{{ states('input_number.home_storage_soc_round_down_threshold') | float(60) }}"
+    home_storage_rounding_forced: "{{ home_storage_soc >= home_storage_round_down_threshold }}"
+    surplus_current_rounding: "{{ 'Abrunden' if home_storage_rounding_forced else configured_surplus_current_rounding }}"
     current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
     current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
     mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
@@ -214,9 +333,7 @@
     pv_surplus_power: >
       {% set surplus = pv_power - home_consumption + charging_power %}
       {{ [surplus, 0] | max | round(0) }}
-    forecast_surplus_power: >
-      {% set surplus = pv_forecast_power - home_consumption + charging_power %}
-      {{ [surplus, 0] | max | round(0) }}
+    current_hour_pv_forecast_wh: "{{ states('sensor.solcast_pv_forecast_prognose_aktuelle_stunde') | float(0) }}"
     time_hours: >
       {% if departure is none %}
         0
@@ -234,28 +351,34 @@
       {% else %}
         0
       {% endif %}
-    departure_imminent: "{{ time_hours <= 1 }}"
-    force_charge_required: "{{ departure_imminent and forecast_surplus_power < min_required_power }}"
+    target_reached: "{{ auto_soc >= target_soc }}"
+    force_charge_notification_required: "{{ current_hour_pv_forecast_wh < 500 and not target_reached and not force_charge_suspended and not force_charge_notification_sent }}"
+    force_charge_due: >-
+      {{ force_charge_notification_sent and not target_reached and not force_charge_suspended and
+         force_charge_start_at not in ['unknown', 'unavailable', 'none'] and
+         as_timestamp(now()) >= as_timestamp(force_charge_start_at) }}
+    force_charge_required: "{{ force_charge_due and car_state != 'Complete' }}"
+    force_charge_power: 11040
     target_power: >
-      {% if target_soc <= auto_soc or departure is none or time_hours <= 0 %}
-        0
-      {% elif force_charge_required %}
-        {{ [pv_surplus_power, min_required_power] | max }}
+      {% if force_charge_required %}
+        {{ force_charge_power }}
       {% else %}
         {{ pv_surplus_power }}
       {% endif %}
     desired_mode: >-
       {{ 'Force_3' if target_power >= 4000 else 'Force_1' }}
     desired_limit: >
-      {% if target_power >= 4000 %}
-        {% set current = (target_power / 690) | round(0, 'ceil') %}
+      {% if target_reached or car_state == 'Complete' %}
+        0
+      {% elif target_power >= 4000 %}
+        {% set current = (target_power / 690) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
       {% else %}
-        {% set current = (target_power / 230) | round(0, 'ceil') %}
+        {% set current = (target_power / 230) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
       {% endif %}
       {{ [6, [current, 16] | min] | max }}
-    needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit }}"
-    starting_session: "{{ force_state != 'Neutral' }}"
-    can_update: "{{ not needs_update or starting_session or (mode_stable and limit_stable) }}"
+    desired_force_state: "{{ 'Off' if target_reached else 'Neutral' }}"
+    needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
+    can_update: "{{ force_state != 'Neutral' or desired_limit == 0 or (mode_stable and limit_stable) }}"
   sensor:
     - name: "pv_daily_debug"
       unique_id: pv_daily_debug
@@ -263,6 +386,11 @@
       state: "{{ 'Ladebedarf' if target_power > 0 else 'Kein Ladebedarf' }}"
       attributes:
         daily_charging_enabled: "{{ daily_charging_enabled }}"
+        configured_rounding: "{{ configured_surplus_current_rounding }}"
+        effective_rounding: "{{ surplus_current_rounding }}"
+        home_storage_soc_pct: "{{ home_storage_soc }}"
+        home_storage_round_down_threshold_pct: "{{ home_storage_round_down_threshold }}"
+        home_storage_rounding_forced: "{{ home_storage_rounding_forced }}"
         weekday_name: "{{ weekday_name }}"
         target_soc_pct: "{{ target_soc }}"
         auto_soc_raw_pct: "{{ auto_soc_raw }}"
@@ -270,12 +398,16 @@
         departure_time: "{{ departure }}"
         time_until_departure_h: "{{ time_hours | round(2) }}"
         pv_power_w: "{{ pv_power }}"
+        pv_forecast_power_w: "{{ pv_forecast_power }}"
         home_consumption_w: "{{ home_consumption }}"
         wallbox_charging_power_w: "{{ charging_power }}"
         pv_surplus_power_w: "{{ pv_surplus_power }}"
+        current_hour_pv_forecast_wh: "{{ current_hour_pv_forecast_wh }}"
         energy_needed_wh: "{{ energy_needed_wh | round(0) }}"
         min_required_power_w: "{{ min_required_power }}"
-        departure_imminent: "{{ departure_imminent }}"
+        target_reached: "{{ target_reached }}"
+        force_charge_notification_required: "{{ force_charge_notification_required }}"
+        force_charge_due: "{{ force_charge_due }}"
         force_charge_required: "{{ force_charge_required }}"
         target_power_w: "{{ target_power }}"
         desired_mode: "{{ desired_mode }}"
@@ -283,6 +415,8 @@
         current_mode: "{{ current_mode }}"
         current_limit_a: "{{ current_limit }}"
         force_state: "{{ force_state }}"
+        car_state: "{{ car_state }}"
+        desired_force_state: "{{ desired_force_state }}"
         mode_stable_5min: "{{ mode_stable }}"
         limit_stable_5min: "{{ limit_stable }}"
         needs_update: "{{ needs_update }}"

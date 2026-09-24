@@ -6,6 +6,26 @@ adhoc_charging_enabled:
   name: Adhoc Laden aktivieren
   initial: false
 
+daily_force_charge_suspended:
+  name: Zwangsladung aussetzen
+  initial: false
+
+daily_force_charge_notification_sent:
+  name: Zwangsladung Benachrichtigung gesendet (intern)
+  initial: false
+
+daily_force_charge_complete_notification_2100_sent:
+  name: Zwangsladung Complete-Warnung 21 Uhr gesendet (intern)
+  initial: false
+
+daily_force_charge_complete_notification_2130_sent:
+  name: Zwangsladung Complete-Warnung 21:30 Uhr gesendet (intern)
+  initial: false
+
+phase_switch_to_1_pending:
+  name: Phasenwechsel auf 1 Phase vorgemerkt (intern)
+  initial: false
+
 wallbox_restart_latched:
   name: Wallbox Neustart ausgelöst (intern)
   initial: false

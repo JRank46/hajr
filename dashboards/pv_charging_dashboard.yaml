@@ -14,11 +14,31 @@ views:
             name: Tägliches Laden
           - entity: input_boolean.adhoc_charging_enabled
             name: Adhoc Laden
+          - entity: input_boolean.daily_force_charge_suspended
+            name: Zwangsladung aussetzen
+          - entity: input_number.pv_estimated_auto_soc_correction
+            name: SOC-Schätzer Vorgabe
+          - entity: input_button.pv_apply_estimated_auto_soc_correction
+            name: SOC-Schätzer Vorgabe übernehmen
+          - entity: sensor.pv_estimated_auto_soc
+            name: SOC-Wert (live geschätzt)
+      - type: entities
+        title: Einstellungen
+        entities:
+          - entity: input_number.pv_net_surplus_start_threshold
+            name: PV-Netzüberschuss Einschaltschwelle
+          - entity: input_number.pv_net_surplus_stop_threshold
+            name: PV-Netzüberschuss Ausschaltschwelle
+          - entity: input_select.pv_surplus_current_rounding
+            name: PV-Überschuss runden
           - entity: input_select.adhoc_charge_mode
-            name: Adhoc Lade-Modus
-          - entity: input_number.pv_surplus_threshold
+            name: Adhoc Lademodus
           - entity: input_number.adhoc_target_soc
-          - entity: input_number.adhoc_charge_current_limit
+            name: Adhoc Ziel-SOC
+          - entity: input_number.adhoc_charge_power_limit
+            name: Adhoc Maximale Ladeleistung
+          - entity: input_number.home_storage_soc_round_down_threshold
+            name: Homespeicher-SOC für Abrunden
       - type: entities
         title: Aktueller Status
         entities:
@@ -42,6 +62,8 @@ views:
             name: SOC Homespeicher
           - entity: select.go_echarger_325099_force_state
             name: Wallbox Ansteuerungs Status
+          - entity: sensor.pv_force_charge_status
+            name: Zwangsladung
       - type: entities
         title: Prognosen & Status
         entities:
@@ -51,8 +73,16 @@ views:
             name: Lade-Status
           - entity: sensor.pv_charge_target_power
             name: Ziel-Ladeleistung
-          - entity: sensor.pv_charge_surplus_power
-            name: PV Überschuss Leistung
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
+          - entity: sensor.pv_net_surplus_power_raw
+            name: PV-Netzüberschuss roh
+          - entity: sensor.pv_net_surplus_power_filtered
+            name: PV-Netzüberschuss Tiefpass
+          - entity: binary_sensor.pv_charge_start_ready
+            name: PV-Netzüberschuss seit 60 s mindestens 750 W
+          - entity: binary_sensor.pv_charge_stop_required
+            name: PV-Netzüberschuss seit 5 min maximal -500 W
           - entity: sensor.solcast_pv_forecast_leistung_in_1_stunde
             name: PV Prog. Leistung in 1 h
           - entity: sensor.solcast_pv_forecast_prognose_aktuelle_stunde
@@ -101,3 +131,185 @@ views:
             entities:
               - entity: input_datetime.daily_charge_time_sunday
               - entity: input_number.daily_target_soc_sunday
+  - title: Diagnose
+    icon: mdi:bug-check-outline
+    path: pv-laden-diagnose
+    badges:
+      - entity: sensor.pv_charge_available_power
+      - entity: sensor.go_echarger_325099_power_total
+      - entity: sensor.pv_estimated_auto_soc
+    cards:
+      - type: entities
+        title: Ladeentscheidung
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.adhoc_charging_enabled
+            name: Adhoc aktiv
+          - entity: input_boolean.daily_charging_enabled
+            name: Täglich aktiv
+          - entity: sensor.pv_active_target_soc
+            name: Aktiver Ziel-SOC
+          - entity: sensor.pv_charge_status
+            name: Entscheidungsstatus
+          - entity: sensor.pv_charge_target_power
+            name: Berechnete Ziel-Ladeleistung
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
+          - type: button
+            name: Zwangsladung Testnachricht senden
+            icon: mdi:bell-ring
+            tap_action:
+              action: perform-action
+              perform_action: script.pv_force_charge_notification_test
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: force_charge_required
+            name: Zwangsladung erforderlich
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: time_until_departure_h
+            name: Zeit bis Abfahrt
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: min_required_power_w
+            name: Mindestleistung bis Abfahrt
+      - type: entities
+        title: Leistungsmessung
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solarnet_pv_leistung
+            name: PV-Erzeugung
+          - entity: sensor.solarnet_leistung_verbrauch
+            name: Hausverbrauch inklusive Wallbox
+          - entity: sensor.go_echarger_325099_power_total
+            name: Gemessene Wallboxleistung
+          - entity: sensor.pv_charge_house_load_without_wallbox
+            name: Hausverbrauch ohne Wallbox
+          - entity: sensor.pv_net_surplus_power_raw
+            name: PV-Netzüberschuss roh
+          - entity: sensor.pv_net_surplus_power_filtered
+            name: PV-Netzüberschuss Tiefpass
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
+          - entity: sensor.pv_charge_wallbox_expected_power
+            name: Erwartete Wallboxleistung aus Sollwerten
+          - entity: sensor.pv_charge_wallbox_power_delta
+            name: Erwartet minus gemessen
+      - type: entities
+        title: Wallbox und Fahrzeug
+        show_header_toggle: false
+        entities:
+          - entity: sensor.go_echarger_325099_car_state
+            name: Fahrzeugstatus an Wallbox
+          - entity: binary_sensor.go_echarger_325099_allowed_to_charge
+            name: Wallbox-Ladefreigabe
+          - entity: sensor.go_echarger_325099_error_state
+            name: Wallbox-Fehler
+          - entity: select.go_echarger_325099_force_state
+            name: Wallbox-Freigabemodus
+          - entity: select.go_echarger_325099_phase_switch_mode
+            name: Phasenmodus
+          - entity: number.go_echarger_325099_set_max_ampere_limit
+            name: Soll-Ladestrom
+          - entity: sensor.go_echarger_325099_energy_charged
+            name: Geladene Energie Wallbox
+          - entity: sensor.aceman_e_battery_hv_state_of_charge
+            name: Fahrzeug-SOC gemeldet
+          - entity: sensor.pv_estimated_auto_soc
+            name: Fahrzeug-SOC geschätzt
+          - entity: input_number.pv_estimated_auto_soc_correction
+            name: Vorgemerkte SOC-Vorgabe
+          - entity: input_button.pv_apply_estimated_auto_soc_correction
+            name: SOC-Vorgabe übernehmen
+          - entity: input_number.charge_session_start_soc
+            name: SOC-Basis der Ladesitzung
+          - entity: input_number.charge_session_start_energy
+            name: Energie-Basis der Ladesitzung
+      - type: history-graph
+        title: Leistung der letzten 2 Stunden
+        hours_to_show: 2
+        refresh_interval: 30
+        entities:
+          - entity: sensor.solarnet_pv_leistung
+            name: PV
+          - entity: sensor.solarnet_leistung_verbrauch
+            name: Haus
+          - entity: sensor.go_echarger_325099_power_total
+            name: Wallbox
+          - entity: sensor.pv_net_surplus_power_filtered
+            name: PV-Netzüberschuss Tiefpass
+          - entity: sensor.pv_net_surplus_power_raw
+            name: PV-Netzüberschuss roh
+          - entity: sensor.pv_charge_available_power
+            name: Für Ladung verfügbare Leistung
+      - type: history-graph
+        title: Ladesitzung der letzten 24 Stunden
+        hours_to_show: 24
+        refresh_interval: 60
+        entities:
+          - entity: sensor.aceman_e_battery_hv_state_of_charge
+            name: SOC gemeldet
+          - entity: sensor.pv_estimated_auto_soc
+            name: SOC geschätzt
+          - entity: sensor.go_echarger_325099_power_total
+            name: Wallboxleistung
+      - type: entities
+        title: Adhoc-Entscheidung
+        show_header_toggle: false
+        entities:
+          - entity: sensor.pv_adhoc_debug
+            name: Adhoc-Debugstatus
+          - type: attribute
+            entity: sensor.pv_adhoc_debug
+            attribute: target_power_w
+            name: Berechnete Ziel-Ladeleistung
+          - type: attribute
+            entity: sensor.pv_adhoc_debug
+            attribute: desired_mode
+            name: Soll-Phasenmodus
+          - type: attribute
+            entity: sensor.pv_adhoc_debug
+            attribute: desired_limit_a
+            name: Soll-Ladestrom
+          - type: attribute
+            entity: sensor.pv_adhoc_debug
+            attribute: desired_force_state
+            name: Soll-Freigabemodus
+          - type: attribute
+            entity: sensor.pv_adhoc_debug
+            attribute: mode_stable_5min
+            name: Phasenmodus seit 5 Minuten stabil
+          - type: attribute
+            entity: sensor.pv_adhoc_debug
+            attribute: limit_stable_5min
+            name: Stromlimit seit 5 Minuten stabil
+      - type: entities
+        title: Tageslade-Entscheidung
+        show_header_toggle: false
+        entities:
+          - entity: sensor.pv_daily_debug
+            name: Tagesladen-Debugstatus
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: departure_time
+            name: Nächste Abfahrt
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: current_hour_pv_forecast_wh
+            name: PV-Prognose aktuelle Stunde
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: force_charge_required
+            name: Zwangsladung erforderlich
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: target_power_w
+            name: Berechnete Ziel-Ladeleistung
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: desired_mode
+            name: Soll-Phasenmodus
+          - type: attribute
+            entity: sensor.pv_daily_debug
+            attribute: desired_limit_a
+            name: Soll-Ladestrom

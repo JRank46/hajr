@@ -14,14 +14,22 @@ pv_adhoc_charge_handler:
         car_state: "{{ states('sensor.go_echarger_325099_car_state') }}"
         restart_latched: "{{ is_state('input_boolean.wallbox_restart_latched', 'on') }}"
         adhoc_mode: "{{ states('input_select.adhoc_charge_mode') }}"
-        adhoc_max_limit: "{{ states('input_number.adhoc_charge_current_limit') | int }}"
+        adhoc_max_power: "{{ states('input_number.adhoc_charge_power_limit') | float(11040) }}"
+        adhoc_max_limit: "{{ (adhoc_max_power / 690) | round(0, 'floor') | int }}"
+        configured_surplus_current_rounding: "{{ states('input_select.pv_surplus_current_rounding') }}"
+        home_storage_soc: "{{ states('sensor.hvm_ladezustand') | float(0) }}"
+        home_storage_round_down_threshold: "{{ states('input_number.home_storage_soc_round_down_threshold') | float(60) }}"
+        home_storage_rounding_forced: "{{ home_storage_soc >= home_storage_round_down_threshold }}"
+        surplus_current_rounding: "{{ 'Abrunden' if home_storage_rounding_forced else configured_surplus_current_rounding }}"
         current_mode: "{{ states('select.go_echarger_325099_phase_switch_mode') }}"
         current_limit: "{{ states('number.go_echarger_325099_set_max_ampere_limit') | int }}"
+        phase_switch_to_1_pending: "{{ is_state('input_boolean.phase_switch_to_1_pending', 'on') }}"
+        phase_switch_to_1_requested_at: "{{ states('input_datetime.phase_switch_to_1_requested_at') }}"
         mode_stable: "{{ (now() - states.select.go_echarger_325099_phase_switch_mode.last_changed).total_seconds() >= 300 }}"
         limit_stable: "{{ (now() - states.number.go_echarger_325099_set_max_ampere_limit.last_changed).total_seconds() >= 300 }}"
-        pv_surplus_power: >
-          {% set surplus = pv_power - home_consumption + charging_power %}
-          {{ [surplus, 0] | max | round(0) }}
+        available_charge_power: "{{ states('sensor.pv_charge_available_power') | float(0) }}"
+        pv_start_ready: "{{ is_state('binary_sensor.pv_charge_start_ready', 'on') }}"
+        pv_stop_required: "{{ is_state('binary_sensor.pv_charge_stop_required', 'on') }}"
         energy_needed_wh: >
           {% set diff = target_soc - auto_soc %}
           {% if diff <= 0 %}0
@@ -31,20 +39,25 @@ pv_adhoc_charge_handler:
           {% if target_soc <= auto_soc %}
             0
           {% elif adhoc_mode == 'Nur PV-Überschuss' %}
-            {{ pv_surplus_power }}
+            {{ available_charge_power }}
           {% elif adhoc_mode == 'Maximale Ladeleistung' %}
-            {{ (adhoc_max_limit * 230 * 3) | int }}
+            {{ adhoc_max_power }}
           {% else %}
             0
           {% endif %}
         desired_mode: >-
           {{ 'Force_3' if (adhoc_mode == 'Maximale Ladeleistung' and target_power > 0) or target_power >= 4000 else 'Force_1' }}
+        phase_switch_to_1_requested: "{{ current_mode == 'Force_3' and desired_mode == 'Force_1' }}"
+        phase_switch_to_1_due: >-
+          {{ phase_switch_to_1_pending and
+             phase_switch_to_1_requested_at not in ['unknown', 'unavailable', 'none'] and
+             (as_timestamp(now()) - as_timestamp(phase_switch_to_1_requested_at)) >= 1800 }}
         starting_session: "{{ force_state != 'Neutral' }}"
         base_limit: >
           {% if target_power >= 4000 %}
-            {% set current = (target_power / 690) | round(0, 'floor') %}
+            {% set current = (target_power / 690) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
           {% else %}
-            {% set current = (target_power / 230) | round(0, 'floor') %}
+            {% set current = (target_power / 230) | round(0, 'ceil' if surplus_current_rounding == 'Aufrunden' else 'floor') %}
           {% endif %}
           {{ [6, [current, adhoc_max_limit] | min] | max }}
         desired_limit: >
@@ -61,14 +74,38 @@ pv_adhoc_charge_handler:
           {% else %}
             {{ current_limit }}
           {% endif %}
-        desired_force_state: "{{ 'Neutral' if target_power > 0 else 'Off' }}"
+        charge_permitted: >
+          {{ adhoc_mode == 'Maximale Ladeleistung' or
+             (force_state == 'Neutral' and not pv_stop_required) or
+             (force_state != 'Neutral' and pv_start_ready) }}
+        desired_force_state: "{{ 'Neutral' if charge_permitted else 'Off' }}"
         needs_update: "{{ current_mode != desired_mode or current_limit != desired_limit or force_state != desired_force_state }}"
         can_update: "{{ starting_session or (mode_stable and limit_stable) }}"
-        charger_should_charge: "{{ target_power > 0 and (adhoc_mode in ['Nur PV-Überschuss', 'Maximale Ladeleistung', 'Auto']) }}"
+        charger_should_charge: "{{ adhoc_mode in ['Nur PV-Überschuss', 'Maximale Ladeleistung', 'Auto'] }}"
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ target_power > 0 and charger_should_charge }}"
+              value_template: "{{ phase_switch_to_1_requested and not phase_switch_to_1_pending }}"
+          sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.phase_switch_to_1_pending
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.phase_switch_to_1_requested_at
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        - conditions:
+            - condition: template
+              value_template: "{{ not phase_switch_to_1_requested and phase_switch_to_1_pending }}"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.phase_switch_to_1_pending
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ target_soc > auto_soc and charger_should_charge and charge_permitted }}"
           sequence:
             - choose:
                 - conditions:
@@ -106,7 +143,7 @@ pv_adhoc_charge_handler:
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ current_mode != desired_mode }}"
+                              value_template: "{{ current_mode != desired_mode and (not phase_switch_to_1_requested or phase_switch_to_1_due) }}"
                           sequence:
                             - service: select.select_option
                               target:
@@ -133,20 +170,6 @@ pv_adhoc_charge_handler:
                                 entity_id: select.go_echarger_325099_force_state
                               data:
                                 option: 'Neutral'
-                    - service: persistent_notification.create
-                      data:
-                        title: 'PV Adhocladung'
-                        message: >
-                          Lade-Einstellung aktualisiert auf {{ desired_mode }} / {{ desired_limit }} A und Force-State = Neutral.
-                - conditions:
-                    - condition: template
-                      value_template: "{{ needs_update and not can_update }}"
-                  sequence:
-                    - service: persistent_notification.create
-                      data:
-                        title: 'PV Adhocladung'
-                        message: >
-                          Phase/Strom warten 5 Minuten Stabilität, bevor ein erneuter Wechsel erfolgt.
       default:
         - choose:
             - conditions:
@@ -159,7 +182,3 @@ pv_adhoc_charge_handler:
                     entity_id: select.go_echarger_325099_force_state
                   data:
                     option: 'Off'
-        - service: persistent_notification.create
-          data:
-            title: 'PV Adhocladung'
-            message: 'Kein Ladebedarf oder Abfahrt vorbei.'
