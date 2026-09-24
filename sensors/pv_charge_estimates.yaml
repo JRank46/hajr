@@ -1,4 +1,36 @@
 - sensor:
+    - name: "LadeleistungGoE"
+      unique_id: ladeleistung_goe
+      device_class: power
+      state_class: measurement
+      unit_of_measurement: 'W'
+      state: "{{ states('sensor.go_echarger_325099_power_total') | float(0) }}"
+    - name: "GesamtEnergieGo"
+      unique_id: gesamtenergie_go
+      device_class: energy
+      state_class: total_increasing
+      unit_of_measurement: 'kWh'
+      state: "{{ states('sensor.go_echarger_325099_energy_charged') | float(0) }}"
+    - name: "LeistungWaermepumpe"
+      unique_id: leistung_waermepumpe
+      device_class: power
+      state_class: measurement
+      unit_of_measurement: 'W'
+      state: "{{ states('sensor.warmepumpe_shelly3em63g3_48f6eeaa67bc_leistung') | float(0) }}"
+    - name: "EnergieWaermepumpe"
+      unique_id: energie_waermepumpe
+      device_class: energy
+      state_class: total_increasing
+      unit_of_measurement: 'kWh'
+      state: "{{ states('sensor.warmepumpe_shelly3em63g3_48f6eeaa67bc_energie') | float(0) }}"
+    - name: "Batterieleistung"
+      unique_id: batterieleistung
+      device_class: power
+      state_class: measurement
+      unit_of_measurement: 'W'
+      state: >-
+        {{ (states('sensor.solarnet_entladeleistung') | float(0) -
+            states('sensor.solarnet_ladeleistung') | float(0)) | round(0) }}
     - name: "pv_estimated_auto_soc"
       unique_id: pv_estimated_auto_soc
       unit_of_measurement: '%'

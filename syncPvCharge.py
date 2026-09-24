@@ -48,8 +48,10 @@ FILES = [
     'helpers/input_button.yaml',
     'helpers/notify.yaml',
     'dashboards/pv_charging_dashboard.yaml',
+    'dashboards/energy_dashboard.yaml',
     'dashboards/resources.yaml',
     'sensors/pv_charge_estimates.yaml',
+    'sensors/energy_dashboard_sensors.yaml',
     'configuration_example.yaml',
     'README.md',
     'Spezifikation_PV_Ueberschussladen.txt'

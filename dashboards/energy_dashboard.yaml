@@ -1,0 +1,169 @@
+title: Energie
+views:
+  - title: Energiefluss
+    path: energiefluss
+    icon: mdi:transmission-tower
+    cards:
+      - type: custom:power-flow-card-plus
+        title: Energiefluss live
+        use_new_flow_rate_model: true
+        max_expected_power: 10000
+        entities:
+          grid:
+            entity:
+              consumption: sensor.solarnet_leistung_netzbezug
+              production: sensor.solarnet_leistung_netzeinspeisung
+            name: Netz
+            display_state: two_way
+          solar:
+            entity: sensor.solarnet_pv_leistung
+            name: PV-Anlage
+          battery:
+            entity:
+              consumption: sensor.solarnet_ladeleistung
+              production: sensor.solarnet_entladeleistung
+            name: Batteriespeicher
+            state_of_charge: sensor.hvm_ladezustand
+            display_state: two_way
+          home:
+            entity: sensor.solarnet_leistung_verbrauch
+            name: Hausverbrauch
+            override_state: true
+          individual:
+            - entity: sensor.ladeleistunggoe
+              name: Wallbox
+              icon: mdi:ev-station
+            - entity: sensor.leistungwaermepumpe
+              name: Waermepumpe
+              icon: mdi:heat-pump
+      - type: vertical-stack
+        cards:
+          - type: horizontal-stack
+            cards:
+              - type: button
+                icon: mdi:chevron-left
+                show_name: false
+                tap_action:
+                  action: call-service
+                  service: input_number.decrement
+                  service_data:
+                    entity_id: input_number.energy_dashboard_day_offset
+              - type: markdown
+                content: >
+                  {% set offset = states('input_number.energy_dashboard_day_offset') | int %}
+                  {% set date = now() + timedelta(days=offset) %}
+                  {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
+                  ## {{ weekdays[date.weekday()] }}, {{ date.strftime('%d.%m.%Y') }}
+              - type: button
+                icon: mdi:chevron-right
+                show_name: false
+                tap_action:
+                  action: call-service
+                  service: input_number.increment
+                  service_data:
+                    entity_id: input_number.energy_dashboard_day_offset
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_number.energy_dashboard_day_offset
+                state: "0.0"
+            card:
+              type: custom:apexcharts-card
+              graph_span: 24h
+              span:
+                start: day
+              header:
+                show: true
+                title: PV-Leistung und Gesamtverbrauch
+                show_states: false
+                colorize_states: true
+              now:
+                show: true
+              yaxis:
+                - id: power
+                  min: 0
+                  decimals: 0
+                - id: state_of_charge
+                  min: 0
+                  max: 100
+                  decimals: 0
+                  opposite: true
+              series:
+                - entity: sensor.solarnet_pv_leistung
+                  name: PV-Leistung
+                  type: area
+                  color: "#ff9800"
+                  stroke_width: 1
+                  yaxis_id: power
+                - entity: sensor.solarnet_leistung_verbrauch
+                  name: Gesamtverbrauch
+                  type: area
+                  color: "#488fc2"
+                  stroke_width: 1
+                  yaxis_id: power
+                - entity: sensor.hvm_ladezustand
+                  name: Ladezustand
+                  type: line
+                  color: "#5c9d4d"
+                  stroke_width: 2
+                  yaxis_id: state_of_charge
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_number.energy_dashboard_day_offset
+                state_not: "0.0"
+            card:
+              type: custom:config-template-card
+              entities:
+                - input_number.energy_dashboard_day_offset
+              card:
+                type: custom:apexcharts-card
+                graph_span: 24h
+                span:
+                  start: day
+                  offset: "${parseInt(states['input_number.energy_dashboard_day_offset'].state, 10) + 'd'}"
+                header:
+                  show: true
+                  title: PV-Leistung und Gesamtverbrauch
+                  show_states: false
+                  colorize_states: true
+                yaxis:
+                  - id: power
+                    min: 0
+                    decimals: 0
+                  - id: state_of_charge
+                    min: 0
+                    max: 100
+                    decimals: 0
+                    opposite: true
+                series:
+                  - entity: sensor.solarnet_pv_leistung
+                    name: PV-Leistung
+                    type: area
+                    color: "#ff9800"
+                    stroke_width: 1
+                    yaxis_id: power
+                  - entity: sensor.solarnet_leistung_verbrauch
+                    name: Gesamtverbrauch
+                    type: area
+                    color: "#488fc2"
+                    stroke_width: 1
+                    yaxis_id: power
+                  - entity: sensor.hvm_ladezustand
+                    name: Ladezustand
+                    type: line
+                    color: "#5c9d4d"
+                    stroke_width: 2
+                    yaxis_id: state_of_charge
+      - type: entities
+        title: Energiezaehler
+        show_header_toggle: false
+        entities:
+          - entity: sensor.geladene_energie
+            name: Batteriespeicher geladen
+          - entity: sensor.entladene_energie
+            name: Batteriespeicher entladen
+          - entity: sensor.gesamtenergiego
+            name: Wallbox Gesamtenergie
+          - entity: sensor.energiewaermepumpe
+            name: Waermepumpe Gesamtenergie

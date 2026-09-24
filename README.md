@@ -61,7 +61,15 @@ input_boolean: !include helpers/input_boolean.yaml
 input_select: !include helpers/input_select.yaml
 script: !include_dir_merge_named scripts
 template: !include sensors/pv_charge_estimates.yaml
+sensor: !include sensors/energy_dashboard.yaml
 ```
+
+`sensors/energy_dashboard.yaml` erzeugt aus
+`sensor.solarnet_ladeleistung` und `sensor.solarnet_entladeleistung` die
+fortlaufenden Energiezaehler `sensor.geladene_energie` und
+`sensor.entladene_energie` in kWh. Diese beiden Entitaeten koennen im Energie-
+Dashboard als Batterieenergie geladen beziehungsweise entladen ausgewaehlt
+werden. Passe die Quell-Entitaeten an, falls sie bei SolarNet anders heissen.
 
 Für Lovelace YAML:
 

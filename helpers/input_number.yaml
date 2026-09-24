@@ -169,3 +169,11 @@ pv_estimated_auto_soc_correction:
   unit_of_measurement: '%'
   icon: mdi:battery-edit-outline
   initial: 0
+
+energy_dashboard_day_offset:
+  name: Energie Dashboard Tagesoffset
+  min: -365
+  max: 0
+  step: 1
+  icon: mdi:calendar-range
+  initial: 0
