@@ -20,8 +20,8 @@ views:
             name: PV-Anlage
           battery:
             entity:
-              consumption: sensor.solarnet_ladeleistung
-              production: sensor.solarnet_entladeleistung
+              consumption: sensor.solarnet_entladeleistung
+              production: sensor.solarnet_ladeleistung
             name: Batteriespeicher
             state_of_charge: sensor.hvm_ladezustand
             display_state: two_way
