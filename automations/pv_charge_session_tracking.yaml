@@ -26,16 +26,22 @@
            (trigger.id == 'soc_updated' and
             states('sensor.go_echarger_325099_power_total') | float(0) > 100) }}
   action:
+    - variables:
+        current_estimated_soc: "{{ states('sensor.pv_estimated_auto_soc') | float(0) }}"
+        raw_soc: "{{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}"
+        corrected_baseline_soc: >-
+          {% if trigger.id == 'correction_applied' %}
+            {{ states('input_number.pv_estimated_auto_soc_correction') | float(0) }}
+          {% elif trigger.id == 'soc_updated' %}
+            {{ [raw_soc, current_estimated_soc] | max }}
+          {% else %}
+            {{ raw_soc }}
+          {% endif %}
     - service: input_number.set_value
       target:
         entity_id: input_number.charge_session_start_soc
       data:
-        value: >
-          {% if trigger.id == 'correction_applied' %}
-            {{ states('input_number.pv_estimated_auto_soc_correction') | float(0) }}
-          {% else %}
-            {{ states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) }}
-          {% endif %}
+        value: "{{ corrected_baseline_soc }}"
     - service: input_number.set_value
       target:
         entity_id: input_number.charge_session_start_energy

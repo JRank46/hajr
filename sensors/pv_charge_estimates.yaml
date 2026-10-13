@@ -17,12 +17,56 @@
       state_class: measurement
       unit_of_measurement: 'W'
       state: "{{ states('sensor.warmepumpe_shelly3em63g3_48f6eeaa67bc_leistung') | float(0) }}"
+    - name: "Leistung1B"
+      unique_id: leistung1b
+      device_class: power
+      state_class: measurement
+      unit_of_measurement: 'W'
+      state: >-
+        {{ (states('sensor.shelly_3em_2_leistung') | float(0) -
+            states('sensor.go_echarger_325099_power_total') | float(0)) | round(0) }}
     - name: "EnergieWaermepumpe"
       unique_id: energie_waermepumpe
       device_class: energy
       state_class: total_increasing
       unit_of_measurement: 'kWh'
       state: "{{ states('sensor.warmepumpe_shelly3em63g3_48f6eeaa67bc_energie') | float(0) }}"
+    - name: "Abrechnung Waermestrom Kosten"
+      unique_id: energy_billing_heat_cost
+      device_class: monetary
+      state_class: measurement
+      unit_of_measurement: EUR
+      icon: mdi:currency-eur
+      state: >-
+        {{ (states('sensor.influx_billing_heat_pump_energy') | float(0) *
+            states('input_number.energy_billing_heat_price') | float(0)) | round(2) }}
+    - name: "Abrechnung Netzbezug Kosten"
+      unique_id: energy_billing_grid_import_cost
+      device_class: monetary
+      state_class: measurement
+      unit_of_measurement: EUR
+      icon: mdi:currency-eur
+      state: >-
+        {{ (states('sensor.influx_billing_grid_import_energy') | float(0) *
+            states('input_number.energy_billing_house_price') | float(0)) | round(2) }}
+    - name: "Abrechnung Einspeisung Erloes"
+      unique_id: energy_billing_feed_in_revenue
+      device_class: monetary
+      state_class: measurement
+      unit_of_measurement: EUR
+      icon: mdi:currency-eur
+      state: >-
+        {{ (states('sensor.influx_billing_grid_export_energy') | float(0) *
+            states('input_number.energy_billing_feed_in_price') | float(0)) | round(2) }}
+    - name: "Abrechnung Netzsaldo"
+      unique_id: energy_billing_grid_balance
+      device_class: monetary
+      state_class: measurement
+      unit_of_measurement: EUR
+      icon: mdi:currency-eur
+      state: >-
+        {{ (states('sensor.energy_billing_grid_import_cost') | float(0) -
+            states('sensor.energy_billing_feed_in_revenue') | float(0)) | round(2) }}
     - name: "Batterieleistung"
       unique_id: batterieleistung
       device_class: power
@@ -40,10 +84,9 @@
         {% set baseline_energy = states('input_number.charge_session_start_energy') | float(0) %}
         {% set energy_now = states('sensor.go_echarger_325099_energy_charged') | float(0) %}
         {% set capacity_wh = (states('input_number.auto_battery_capacity') | float(38.5)) * 1000 %}
-        {% set raw_soc = states('sensor.aceman_e_battery_hv_state_of_charge') | float(0) %}
         {% set delta_wh = [energy_now - baseline_energy, 0] | max %}
-        {% set estimate = (baseline_soc + (delta_wh / capacity_wh * 100)) if capacity_wh > 0 else raw_soc %}
-        {{ [100, [raw_soc, estimate] | max] | min | round(1) }}
+        {% set estimate = baseline_soc + (delta_wh / capacity_wh * 100) if capacity_wh > 0 else baseline_soc %}
+        {{ [100, [0, estimate] | max] | min | round(1) }}
     - name: "pv_active_target_soc"
       unique_id: pv_active_target_soc
       unit_of_measurement: '%'
@@ -137,13 +180,14 @@
     - name: "pv_charge_status"
       unique_id: pv_charge_status
       state: >
+        {% set adhoc_enabled = is_state('input_boolean.adhoc_charging_enabled', 'on') %}
         {% set available = states('sensor.pv_charge_available_power') | float(0) %}
         {% set target = states('sensor.pv_charge_target_power') | float(0) %}
         {% set force_start_at = states('input_datetime.daily_force_charge_start_at') %}
         {% set force_planned = is_state('input_boolean.daily_force_charge_notification_sent', 'on') and
            force_start_at not in ['unknown', 'unavailable', 'none'] and
            as_timestamp(now()) < as_timestamp(force_start_at) %}
-        {{ 'Zwangsladung geplant' if force_planned else ('Bereit' if target <= 0 else ('PV Überschuss' if available >= target else 'Zwangsladung')) }}
+        {{ 'Adhoc Laden' if adhoc_enabled else ('Zwangsladung geplant' if force_planned else ('Bereit' if target <= 0 else ('PV Überschuss' if available >= target else 'Zwangsladung'))) }}
 
     - name: "pv_force_charge_status"
       unique_id: pv_force_charge_status

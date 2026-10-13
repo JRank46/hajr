@@ -54,3 +54,13 @@ phase_switch_to_1_requested_at:
   name: Phasenwechsel auf 1 Phase angefordert (intern)
   has_date: true
   has_time: true
+
+energy_billing_start:
+  name: Start Abrechnungszeitraum
+  has_date: true
+  has_time: false
+
+energy_billing_end:
+  name: Ende Abrechnungszeitraum
+  has_date: true
+  has_time: false

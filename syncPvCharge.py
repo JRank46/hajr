@@ -38,6 +38,7 @@ FILES = [
     'automations/pv_force_charge_cycle.yaml',
     'automations/pv_force_charge_notifications.yaml',
     'automations/pv_force_charge_notification_test.yaml',
+    'automations/energy_billing.yaml',
     'scripts/pv_daily_charge_handler.yaml',
     'scripts/pv_adhoc_charge_handler.yaml',
     'scripts/pv_force_charge_notification_test.yaml',
@@ -52,6 +53,8 @@ FILES = [
     'dashboards/resources.yaml',
     'sensors/pv_charge_estimates.yaml',
     'sensors/energy_dashboard_sensors.yaml',
+    'sensors/energy_billing_sql.yaml',
+    'sensors/energy_billing_influx.yaml',
     'configuration_example.yaml',
     'README.md',
     'Spezifikation_PV_Ueberschussladen.txt'

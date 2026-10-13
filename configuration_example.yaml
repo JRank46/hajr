@@ -10,6 +10,7 @@ notify: !include helpers/notify.yaml
 script: !include_dir_merge_named scripts
 template: !include sensors/pv_charge_estimates.yaml
 sensor: !include sensors/energy_dashboard_sensors.yaml
+rest: !include sensors/energy_billing_influx.yaml
 
 # Central entity ID configuration
 # entities: !include helpers/entity_ids.yaml

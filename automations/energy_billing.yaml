@@ -1,0 +1,21 @@
+- id: energy_billing_refresh
+  alias: Energieabrechnung aktualisieren
+  description: Aktualisiert die InfluxDB-Abfragen nach Wahl des Zeitraums.
+  triggers:
+    - trigger: state
+      entity_id:
+        - input_button.energy_billing_calculate
+        - input_datetime.energy_billing_start
+        - input_datetime.energy_billing_end
+  actions:
+    - action: homeassistant.update_entity
+      target:
+        entity_id:
+          - sensor.influx_billing_battery_discharged_energy
+          - sensor.influx_billing_wallbox_energy
+          - sensor.influx_billing_heat_pump_energy
+          - sensor.influx_billing_house_1a_energy
+          - sensor.influx_billing_house_1b_energy
+          - sensor.influx_billing_grid_import_energy
+          - sensor.influx_billing_grid_export_energy
+  mode: single
