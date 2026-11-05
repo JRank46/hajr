@@ -53,7 +53,6 @@ FILES = [
     'dashboards/resources.yaml',
     'sensors/pv_charge_estimates.yaml',
     'sensors/energy_dashboard_sensors.yaml',
-    'sensors/energy_billing_sql.yaml',
     'sensors/energy_billing_influx.yaml',
     'configuration_example.yaml',
     'README.md',
