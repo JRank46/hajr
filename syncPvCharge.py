@@ -5,6 +5,9 @@ syncPvCharge.py
 Synchronises PV charge-related files from local repo to Home Assistant OS either via SSH or a Samba share.
 
 Usage:
+  Wichtig Crededentials müssen hinterlegt sein:
+  cmdkey /add:192.168.2.125 /user:SambaHomeassistantJR /pass:<Passwort>
+
   python syncPvCharge.py --mode ssh --host 192.168.2.125 --user root --key /path/to/id_rsa
   python syncPvCharge.py --mode ssh --host 192.168.2.125 --user root --password SECRET
   python syncPvCharge.py --mode samba --share "\\\\192.168.2.125\\config" --dry-run
