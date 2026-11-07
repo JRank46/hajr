@@ -187,6 +187,44 @@ views:
                     stroke_width: 2
                     yaxis_id: state_of_charge
       - type: entities
+        title: 24h Statistik
+        show_header_toggle: false
+        entities:
+          - entity: sensor.energy_day_house_1a
+            name: Haus 1A Verbrauch
+          - entity: sensor.energy_day_house_1b
+            name: Haus 1B Verbrauch
+          - entity: sensor.energy_day_heat_pump
+            name: Wärmepumpe Verbrauch
+          - entity: sensor.energy_day_wallbox
+            name: Wallbox Gesamtverbrauch
+          - entity: sensor.energy_day_battery_charged
+            name: Batterie geladen
+          - entity: sensor.energy_day_battery_discharged
+            name: Batterie entladen
+          - entity: sensor.energy_day_pv
+            name: PV Anlage Erzeugung
+          - entity: sensor.energy_day_grid_export
+            name: Eingespeiste Energie
+          - entity: sensor.energy_day_grid_import
+            name: Netzbezug
+          - entity: sensor.energy_day_self_sufficiency
+            name: Autarkiegrad
+      - type: entities
+        title: PV Prognose
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solcast_pv_forecast_leistung_in_1_stunde
+            name: Leistung in 1h
+          - entity: sensor.solcast_pv_forecast_prognose_aktuelle_stunde
+            name: Energie aktuelle Stunde
+          - entity: sensor.solcast_pv_forecast_prognose_nachste_stunde
+            name: Energie nächste Stunde
+          - entity: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+            name: Energie verbleibend heute
+          - entity: sensor.solcast_pv_forecast_prognose_morgen
+            name: Energie morgen
+      - type: entities
         title: Energiezaehler
         show_header_toggle: false
         entities:
@@ -273,6 +311,10 @@ views:
             name: Lade-Modus
           - entity: number.go_echarger_325099_set_max_ampere_limit
             name: Ladestrom
+          - entity: sensor.go_echarger_325099_car_state
+            name: Wallbox Status
+          - entity: sensor.pv_charge_status
+            name: Lade Status
           - type: button
             name: PV Aceman Dashboard
             icon: mdi:ev-station

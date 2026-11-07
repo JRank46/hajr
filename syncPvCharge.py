@@ -42,6 +42,7 @@ FILES = [
     'automations/pv_force_charge_notifications.yaml',
     'automations/pv_force_charge_notification_test.yaml',
     'automations/energy_billing.yaml',
+    'sensors/energy_daily_rest_command.yaml',
     'scripts/pv_daily_charge_handler.yaml',
     'scripts/pv_adhoc_charge_handler.yaml',
     'scripts/pv_force_charge_notification_test.yaml',

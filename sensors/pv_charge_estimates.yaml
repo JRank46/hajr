@@ -220,6 +220,107 @@
       delay_on:
         minutes: 5
 
+# 24h-Statistik des im Energiefluss-Reiter gewaehlten Tages. Die InfluxDB-Abfrage
+# (rest_command energy_daily_influx_query) liefert je Quelle Tagesende und Tagesbeginn;
+# "daily" enthaelt danach die zehn Tagesdifferenzen in kWh (Wh-Quellen bereits durch 1000
+# geteilt) in der Reihenfolge der Quellen im rest_command.
+- trigger:
+    - platform: state
+      entity_id: input_number.energy_dashboard_day_offset
+    - platform: time_pattern
+      minutes: "/5"
+    - platform: homeassistant
+      event: start
+  action:
+    - action: rest_command.energy_daily_influx_query
+      data:
+        offset: "{{ states('input_number.energy_dashboard_day_offset') | int(0) }}"
+      response_variable: influx
+      continue_on_error: true
+    - variables:
+        daily: >-
+          {%- if influx is defined and influx.status == 200 and influx.content.results | length == 20 -%}
+            {%- set results = influx.content.results -%}
+            {%- set ns = namespace(values=[]) -%}
+            {%- for i in range(0, 20, 2) -%}
+              {%- set end_value = results[i]['series'][0]['values'][0][1] if 'series' in results[i] else 0 -%}
+              {%- set start_value = results[i + 1]['series'][0]['values'][0][1] if 'series' in results[i + 1] else 0 -%}
+              {%- set factor = 0.001 if (i // 2) in [3, 7, 8] else 1 -%}
+              {%- set ns.values = ns.values + [((end_value - start_value) * factor) | round(3)] -%}
+            {%- endfor -%}
+            {{ ns.values }}
+          {%- else -%}
+            []
+          {%- endif -%}
+  sensor:
+    - name: "energy_day_house_1a"
+      unique_id: energy_day_house_1a
+      unit_of_measurement: kWh
+      icon: mdi:home-outline
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[0] }}"
+    - name: "energy_day_house_1b"
+      unique_id: energy_day_house_1b
+      unit_of_measurement: kWh
+      icon: mdi:home-outline
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ (daily[1] - daily[3]) | round(3) }}"
+    - name: "energy_day_heat_pump"
+      unique_id: energy_day_heat_pump
+      unit_of_measurement: kWh
+      icon: mdi:heat-pump
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[2] }}"
+    - name: "energy_day_wallbox"
+      unique_id: energy_day_wallbox
+      unit_of_measurement: kWh
+      icon: mdi:ev-station
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[3] }}"
+    - name: "energy_day_battery_charged"
+      unique_id: energy_day_battery_charged
+      unit_of_measurement: kWh
+      icon: mdi:battery-arrow-down
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[4] }}"
+    - name: "energy_day_battery_discharged"
+      unique_id: energy_day_battery_discharged
+      unit_of_measurement: kWh
+      icon: mdi:battery-arrow-up
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[5] }}"
+    - name: "energy_day_pv"
+      unique_id: energy_day_pv
+      unit_of_measurement: kWh
+      icon: mdi:solar-power
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[6] }}"
+    - name: "energy_day_grid_export"
+      unique_id: energy_day_grid_export
+      unit_of_measurement: kWh
+      icon: mdi:transmission-tower-export
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[7] }}"
+    - name: "energy_day_grid_import"
+      unique_id: energy_day_grid_import
+      unit_of_measurement: kWh
+      icon: mdi:transmission-tower-import
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[8] }}"
+    - name: "energy_day_total_consumption"
+      unique_id: energy_day_total_consumption
+      unit_of_measurement: kWh
+      icon: mdi:home-lightning-bolt
+      availability: "{{ daily | length == 10 }}"
+      state: "{{ daily[9] }}"
+    - name: "energy_day_self_sufficiency"
+      unique_id: energy_day_self_sufficiency
+      unit_of_measurement: '%'
+      icon: mdi:home-lightning-bolt-outline
+      availability: "{{ daily | length == 10 }}"
+      state: >-
+        {{ ((daily[9] - daily[8]) / daily[9] * 100) | round(1) if daily[9] > 0 else 0 }}
+
 # Exponentieller Tiefpass: 5-s-Abtastung mit alpha=0,1 ergibt etwa 50 s Zeitkonstante.
 - trigger:
     - platform: time_pattern
