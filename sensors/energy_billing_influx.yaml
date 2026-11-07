@@ -1,4 +1,4 @@
-- resource: http://192.168.2.125:8086/query
+- resource: http://192.168.2.18:8086/query
   authentication: basic
   username: !secret influxdb_username
   password: !secret influxdb_password
@@ -12,7 +12,7 @@
       unit_of_measurement: kWh
       value_template: "{{ value_json.results[0].series[0]['values'][0][1] | float(0) }}"
 
-- resource: http://192.168.2.125:8086/query
+- resource: http://192.168.2.18:8086/query
   authentication: basic
   username: !secret influxdb_username
   password: !secret influxdb_password

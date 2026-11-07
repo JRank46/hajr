@@ -25,7 +25,7 @@ influxdb_password: ...
 ```
 
 Die REST-Sensoren fragen die InfluxDB `HomeAssistant` unter
-`http://192.168.2.125:8086/query` ab und verwenden Basic Authentication.
+`http://192.168.2.18:8086/query` ab und verwenden Basic Authentication.
 
 ## Datenmodell in InfluxDB
 
@@ -143,7 +143,7 @@ entstehen:
 Dateien auf Home Assistant uebertragen:
 
 ```powershell
-python syncPvCharge.py --mode samba --share "\\192.168.2.125\config"
+python syncPvCharge.py --mode samba --share "\\192.168.2.18\config"
 ```
 
 Anschliessend Home Assistant neu starten oder die passende YAML-/REST-

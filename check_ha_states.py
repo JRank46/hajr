@@ -10,7 +10,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 
-DEFAULT_DATABASE = r"\\192.168.2.125\config\home-assistant_v2.db"
+DEFAULT_DATABASE = r"\\192.168.2.18\config\home-assistant_v2.db"
 ENTITY_IDS = (
     "input_boolean.adhoc_charging_enabled",
     "input_boolean.daily_charging_enabled",
@@ -189,7 +189,7 @@ def print_states(states, source):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", default=DEFAULT_DATABASE, help="Path to home-assistant_v2.db")
-    parser.add_argument("--url", default="http://192.168.2.125:8123", help="Home Assistant base URL")
+    parser.add_argument("--url", default="http://192.168.2.18:8123", help="Home Assistant base URL")
     parser.add_argument(
         "--reload-scripts",
         action="store_true",

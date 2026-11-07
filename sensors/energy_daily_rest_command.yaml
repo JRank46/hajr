@@ -27,4 +27,4 @@ energy_daily_influx_query:
         {%- set ns.queries = ns.queries + ['SELECT LAST("value") FROM "' ~ measurement ~ '" WHERE "entity_id" = ' ~ "'" ~ entity ~ "'" ~ ' AND time < ' ~ (as_timestamp(bound) | int) ~ 's'] -%}
       {%- endfor -%}
     {%- endfor -%}
-    http://192.168.2.125:8086/query?db=HomeAssistant&q={{ ns.queries | join(';') | urlencode }}
+    http://192.168.2.18:8086/query?db=HomeAssistant&q={{ ns.queries | join(';') | urlencode }}

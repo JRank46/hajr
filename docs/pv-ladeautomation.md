@@ -142,7 +142,7 @@ pruefen: `daily_force_charge_notification_sent`,
 Dateien mit dem Sync-Skript kopieren:
 
 ```powershell
-python syncPvCharge.py --mode samba --share "\\192.168.2.125\config"
+python syncPvCharge.py --mode samba --share "\\192.168.2.18\config"
 ```
 
 Unter Git Bash mit der gemeinsamen virtuellen Umgebung:
@@ -150,7 +150,7 @@ Unter Git Bash mit der gemeinsamen virtuellen Umgebung:
 ```bash
 cd /d/Josef/GitRepos
 source .venv/Scripts/activate
-python hajr/syncPvCharge.py --mode samba --share '\\192.168.2.125\config'
+python hajr/syncPvCharge.py --mode samba --share '\\192.168.2.18\config'
 ```
 
 Das Kopieren laedt Home Assistant nicht neu. Nach Aenderungen jeweils die
