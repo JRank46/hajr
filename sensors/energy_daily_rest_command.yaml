@@ -1,0 +1,30 @@
+# InfluxDB-Tagesabfrage fuer die 24h-Statistik im Energiefluss-Reiter.
+# Die Reihenfolge der Quellen bestimmt die Ergebnisindizes (je Quelle: Tagesende, Tagesbeginn)
+# und muss zu den Template-Sensoren in sensors/pv_charge_estimates.yaml passen.
+energy_daily_influx_query:
+  method: get
+  username: !secret influxdb_username
+  password: !secret influxdb_password
+  timeout: 20
+  url: >-
+    {%- set sources = [
+      ('kWh', 'shelly3em63g3_e4b063f69434_energie'),
+      ('kWh', 'shelly_3em_2_energie'),
+      ('kWh', 'warmepumpe_shelly3em63g3_48f6eeaa67bc_energie'),
+      ('Wh', 'go_echarger_325099_total_energy_charged'),
+      ('kWh', 'geladene_energie'),
+      ('kWh', 'entladene_energie'),
+      ('kWh', 'pv_energie'),
+      ('Wh', 'smart_meter_ts_65a_3_eingespeiste_wirkenergie'),
+      ('Wh', 'smart_meter_ts_65a_3_bezogene_wirkenergie'),
+      ('kWh', 'haus_energie')
+    ] -%}
+    {%- set day_start = today_at('00:00') + timedelta(days=offset | int(0)) -%}
+    {%- set bounds = [day_start + timedelta(days=1), day_start] -%}
+    {%- set ns = namespace(queries=[]) -%}
+    {%- for measurement, entity in sources -%}
+      {%- for bound in bounds -%}
+        {%- set ns.queries = ns.queries + ['SELECT LAST("value") FROM "' ~ measurement ~ '" WHERE "entity_id" = ' ~ "'" ~ entity ~ "'" ~ ' AND time < ' ~ (as_timestamp(bound) | int) ~ 's'] -%}
+      {%- endfor -%}
+    {%- endfor -%}
+    http://192.168.2.125:8086/query?db=HomeAssistant&q={{ ns.queries | join(';') | urlencode }}

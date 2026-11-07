@@ -1,0 +1,86 @@
+- resource: http://192.168.2.125:8086/query
+  authentication: basic
+  username: !secret influxdb_username
+  password: !secret influxdb_password
+  scan_interval: 86400
+  params:
+    db: HomeAssistant
+    q: SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'entladene_energie'
+  sensor:
+    - name: influx_billing_connection_test
+      unique_id: influx_billing_connection_test
+      unit_of_measurement: kWh
+      value_template: "{{ value_json.results[0].series[0]['values'][0][1] | float(0) }}"
+
+- resource: http://192.168.2.125:8086/query
+  authentication: basic
+  username: !secret influxdb_username
+  password: !secret influxdb_password
+  scan_interval: 86400
+  params:
+    db: HomeAssistant
+    q: >-
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'entladene_energie' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'entladene_energie' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+      SELECT LAST("value") FROM "Wh" WHERE "entity_id" = 'go_echarger_325099_total_energy_charged' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "Wh" WHERE "entity_id" = 'go_echarger_325099_total_energy_charged' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'warmepumpe_shelly3em63g3_48f6eeaa67bc_energie' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'warmepumpe_shelly3em63g3_48f6eeaa67bc_energie' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'shelly3em63g3_e4b063f69434_energie' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'shelly3em63g3_e4b063f69434_energie' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'shelly_3em_2_energie' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "kWh" WHERE "entity_id" = 'shelly_3em_2_energie' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+      SELECT LAST("value") FROM "Wh" WHERE "entity_id" = 'smart_meter_ts_65a_3_bezogene_wirkenergie' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "Wh" WHERE "entity_id" = 'smart_meter_ts_65a_3_bezogene_wirkenergie' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+      SELECT LAST("value") FROM "Wh" WHERE "entity_id" = 'smart_meter_ts_65a_3_eingespeiste_wirkenergie' AND time < {{ as_timestamp(as_datetime(states('input_datetime.energy_billing_end')) + timedelta(days=1)) | int }}s;
+      SELECT LAST("value") FROM "Wh" WHERE "entity_id" = 'smart_meter_ts_65a_3_eingespeiste_wirkenergie' AND time < {{ as_timestamp(states('input_datetime.energy_billing_start')) | int }}s;
+  sensor:
+    - name: influx_billing_battery_discharged_energy
+      unique_id: influx_billing_battery_discharged_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:battery-arrow-up
+      value_template: >-
+        {{ (value_json.results[0].series[0]['values'][0][1] | float(0) - value_json.results[1].series[0]['values'][0][1] | float(0)) | round(3) }}
+    - name: influx_billing_wallbox_energy
+      unique_id: influx_billing_wallbox_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:ev-station
+      value_template: >-
+        {{ ((value_json.results[2].series[0]['values'][0][1] | float(0) - value_json.results[3].series[0]['values'][0][1] | float(0)) / 1000) | round(3) }}
+    - name: influx_billing_heat_pump_energy
+      unique_id: influx_billing_heat_pump_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:heat-pump
+      value_template: >-
+        {{ (value_json.results[4].series[0]['values'][0][1] | float(0) - value_json.results[5].series[0]['values'][0][1] | float(0)) | round(3) }}
+    - name: influx_billing_house_1a_energy
+      unique_id: influx_billing_house_1a_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:home-outline
+      value_template: >-
+        {{ (value_json.results[6].series[0]['values'][0][1] | float(0) - value_json.results[7].series[0]['values'][0][1] | float(0)) | round(3) }}
+    - name: influx_billing_house_1b_energy
+      unique_id: influx_billing_house_1b_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:home-outline
+      value_template: >-
+        {{ ((value_json.results[8].series[0]['values'][0][1] | float(0) - value_json.results[9].series[0]['values'][0][1] | float(0)) - (value_json.results[2].series[0]['values'][0][1] | float(0) - value_json.results[3].series[0]['values'][0][1] | float(0)) / 1000) | round(3) }}
+    - name: influx_billing_grid_import_energy
+      unique_id: influx_billing_grid_import_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:transmission-tower-import
+      value_template: >-
+        {{ ((value_json.results[10].series[0]['values'][0][1] | float(0) - value_json.results[11].series[0]['values'][0][1] | float(0)) / 1000) | round(3) }}
+    - name: influx_billing_grid_export_energy
+      unique_id: influx_billing_grid_export_energy
+      unit_of_measurement: kWh
+      state_class: measurement
+      icon: mdi:transmission-tower-export
+      value_template: >-
+        {{ ((value_json.results[12].series[0]['values'][0][1] | float(0) - value_json.results[13].series[0]['values'][0][1] | float(0)) / 1000) | round(3) }}

@@ -54,14 +54,22 @@ hajr/
 In deiner `configuration.yaml`:
 
 ```yaml
-automation: !include automations/pv_charging_schedule.yaml
+automation: !include_dir_merge_list automations
 input_number: !include helpers/input_number.yaml
 input_datetime: !include helpers/input_datetime.yaml
 input_boolean: !include helpers/input_boolean.yaml
 input_select: !include helpers/input_select.yaml
 script: !include_dir_merge_named scripts
 template: !include sensors/pv_charge_estimates.yaml
+sensor: !include sensors/energy_dashboard_sensors.yaml
 ```
+
+`sensors/energy_dashboard_sensors.yaml` erzeugt aus
+`sensor.solarnet_ladeleistung` und `sensor.solarnet_entladeleistung` die
+fortlaufenden Energiezaehler `sensor.geladene_energie` und
+`sensor.entladene_energie` in kWh. Diese beiden Entitaeten koennen im Energie-
+Dashboard als Batterieenergie geladen beziehungsweise entladen ausgewaehlt
+werden. Passe die Quell-Entitaeten an, falls sie bei SolarNet anders heissen.
 
 Für Lovelace YAML:
 
@@ -116,3 +124,9 @@ entity_id: !secret pv_power_sensor
 
 - Wenn die Logik noch komplexer wird, kannst du später AppDaemon, Python-Skripte oder ein Custom Component verwenden.
 - Das aktuelle Setup deckt die Spec mit YAML, Helpern, Dashboard und Prognosesensoren ab.
+
+## Technische Dokumentation
+
+Die aktuelle Betriebslogik, die SOC-Schaetzung, Zwangsladung,
+Phasenumschaltung sowie Diagnose- und Bereitstellungshinweise stehen in
+[`docs/pv-ladeautomation.md`](docs/pv-ladeautomation.md).

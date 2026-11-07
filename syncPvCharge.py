@@ -5,6 +5,9 @@ syncPvCharge.py
 Synchronises PV charge-related files from local repo to Home Assistant OS either via SSH or a Samba share.
 
 Usage:
+  Wichtig Crededentials müssen hinterlegt sein:
+  cmdkey /add:192.168.2.125 /user:SambaHomeassistantJR /pass:<Passwort>
+
   python syncPvCharge.py --mode ssh --host 192.168.2.125 --user root --key /path/to/id_rsa
   python syncPvCharge.py --mode ssh --host 192.168.2.125 --user root --password SECRET
   python syncPvCharge.py --mode samba --share "\\\\192.168.2.125\\config" --dry-run
@@ -38,6 +41,8 @@ FILES = [
     'automations/pv_force_charge_cycle.yaml',
     'automations/pv_force_charge_notifications.yaml',
     'automations/pv_force_charge_notification_test.yaml',
+    'automations/energy_billing.yaml',
+    'sensors/energy_daily_rest_command.yaml',
     'scripts/pv_daily_charge_handler.yaml',
     'scripts/pv_adhoc_charge_handler.yaml',
     'scripts/pv_force_charge_notification_test.yaml',
@@ -48,8 +53,11 @@ FILES = [
     'helpers/input_button.yaml',
     'helpers/notify.yaml',
     'dashboards/pv_charging_dashboard.yaml',
+    'dashboards/energy_dashboard.yaml',
     'dashboards/resources.yaml',
     'sensors/pv_charge_estimates.yaml',
+    'sensors/energy_dashboard_sensors.yaml',
+    'sensors/energy_billing_influx.yaml',
     'configuration_example.yaml',
     'README.md',
     'Spezifikation_PV_Ueberschussladen.txt'

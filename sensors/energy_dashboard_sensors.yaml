@@ -1,0 +1,34 @@
+# Energiezaehler fuer das Home-Assistant-Energie-Dashboard.
+# Die SolarNet-Leistungssensoren liefern Watt; die integration-Plattform summiert
+# diese Leistung ueber die Zeit zu fortlaufenden kWh-Zaehlern.
+- platform: integration
+  source: sensor.solarnet_pv_leistung
+  name: PV Energie
+  unique_id: solarnet_pv_energie
+  unit_prefix: k
+  round: 2
+  method: left
+
+- platform: integration
+  source: sensor.solarnet_leistung_verbrauch
+  name: Haus Energie
+  unique_id: solarnet_haus_energie
+  unit_prefix: k
+  round: 2
+  method: left
+
+- platform: integration
+  source: sensor.solarnet_ladeleistung
+  name: Geladene Energie
+  unique_id: solarnet_geladene_energie
+  unit_prefix: k
+  round: 2
+  method: left
+
+- platform: integration
+  source: sensor.solarnet_entladeleistung
+  name: Entladene Energie
+  unique_id: solarnet_entladene_energie
+  unit_prefix: k
+  round: 2
+  method: left

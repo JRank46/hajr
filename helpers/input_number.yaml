@@ -169,3 +169,38 @@ pv_estimated_auto_soc_correction:
   unit_of_measurement: '%'
   icon: mdi:battery-edit-outline
   initial: 0
+
+energy_billing_heat_price:
+  name: Strompreis WärmeStrom
+  min: 0
+  max: 2
+  step: 0.001
+  unit_of_measurement: EUR/kWh
+  icon: mdi:heat-wave
+  initial: 0
+
+energy_billing_house_price:
+  name: Strompreis Hausstrom
+  min: 0
+  max: 2
+  step: 0.001
+  unit_of_measurement: EUR/kWh
+  icon: mdi:home-lightning-bolt
+  initial: 0
+
+energy_billing_feed_in_price:
+  name: Strompreis Einspeisung
+  min: 0
+  max: 2
+  step: 0.001
+  unit_of_measurement: EUR/kWh
+  icon: mdi:transmission-tower-export
+  initial: 0
+
+energy_dashboard_day_offset:
+  name: Energie Dashboard Tagesoffset
+  min: -365
+  max: 0
+  step: 1
+  icon: mdi:calendar-range
+  initial: 0
