@@ -6,11 +6,11 @@ Synchronises PV charge-related files from local repo to Home Assistant OS either
 
 Usage:
   Wichtig Crededentials müssen hinterlegt sein:
-  cmdkey /add:192.168.2.125 /user:SambaHomeassistantJR /pass:<Passwort>
+  cmdkey /add:192.168.2.18 /user:SambaHomeassistantJR /pass:<Passwort>
 
-  python syncPvCharge.py --mode ssh --host 192.168.2.125 --user root --key /path/to/id_rsa
-  python syncPvCharge.py --mode ssh --host 192.168.2.125 --user root --password SECRET
-  python syncPvCharge.py --mode samba --share "\\\\192.168.2.125\\config" --dry-run
+  python syncPvCharge.py --mode ssh --host 192.168.2.18 --user root --key /path/to/id_rsa
+  python syncPvCharge.py --mode ssh --host 192.168.2.18 --user root --password SECRET
+  python syncPvCharge.py --mode samba --share "\\\\192.168.2.18\\config" --dry-run
 
 Environment variables supported:
   HA_SSH_KEY  - path to private key file
@@ -42,6 +42,7 @@ FILES = [
     'automations/pv_force_charge_notifications.yaml',
     'automations/pv_force_charge_notification_test.yaml',
     'automations/energy_billing.yaml',
+    'automations/netwatch_notifications.yaml',
     'sensors/energy_daily_rest_command.yaml',
     'scripts/pv_daily_charge_handler.yaml',
     'scripts/pv_adhoc_charge_handler.yaml',
@@ -54,6 +55,7 @@ FILES = [
     'helpers/notify.yaml',
     'dashboards/pv_charging_dashboard.yaml',
     'dashboards/energy_dashboard.yaml',
+    'dashboards/netwatch_dashboard.yaml',
     'dashboards/resources.yaml',
     'sensors/pv_charge_estimates.yaml',
     'sensors/energy_dashboard_sensors.yaml',
@@ -169,7 +171,7 @@ def main():
     parser = argparse.ArgumentParser(description='Sync PV charging files to Home Assistant')
     parser.add_argument('--mode', choices=['ssh', 'samba'], default='ssh', help='Transfer mode: ssh or samba')
     parser.add_argument('--host', help='Home Assistant host (IP or hostname) for SSH mode')
-    parser.add_argument('--share', help='UNC share path for Samba mode, e.g. \\\\192.168.2.125\\config')
+    parser.add_argument('--share', help='UNC share path for Samba mode, e.g. \\\\192.168.2.18\\config')
     parser.add_argument('--user', default='root', help='SSH user (default: root)')
     parser.add_argument('--key', help='Path to private key file (optional)')
     parser.add_argument('--password', help='SSH password (optional)')

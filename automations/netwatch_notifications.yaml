@@ -1,0 +1,39 @@
+- id: netwatch_incident_notification
+  alias: 'Netwatch: DHCP-Vorfall melden'
+  description: 'Meldet einen vom Raspi erkannten DHCP-Vorfall (Rogue-DHCP-Server o. Ä.) aufs Handy.'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.netwatch_incident
+      to: 'on'
+  action:
+    - service: persistent_notification.create
+      data:
+        title: 'Netwatch'
+        message: >-
+          {{ state_attr('binary_sensor.netwatch_incident', 'detail') }}
+          Ordner auf dem Raspi: {{ state_attr('binary_sensor.netwatch_incident', 'incident_folder') }}
+        notification_id: netwatch_incident_notification
+    - service: notify.mobile_app_pizzaiolo_sepp
+      data:
+        title: 'DHCP-Vorfall im Heimnetz'
+        message: "{{ state_attr('binary_sensor.netwatch_incident', 'reason') }}: {{ state_attr('binary_sensor.netwatch_incident', 'detail') }}"
+    - service: notify.mobile_app_apfel
+      data:
+        title: 'DHCP-Vorfall im Heimnetz'
+        message: "{{ state_attr('binary_sensor.netwatch_incident', 'reason') }}: {{ state_attr('binary_sensor.netwatch_incident', 'detail') }}"
+  mode: single
+
+- id: netwatch_offline_notification
+  alias: 'Netwatch: Raspi-Dienst ausgefallen'
+  description: 'Warnt, wenn der Netwatch-Dienst 5 Minuten nicht mehr per MQTT erreichbar ist (Last Will setzt die Entitäten auf nicht verfügbar).'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.netwatch_incident
+      to: 'unavailable'
+      for: '00:05:00'
+  action:
+    - service: notify.mobile_app_pizzaiolo_sepp
+      data:
+        title: 'Netwatch'
+        message: 'Der DHCP-Wächter auf dem Raspi ist seit 5 Minuten nicht erreichbar.'
+  mode: single

@@ -33,5 +33,11 @@ rest_command: !include sensors/energy_daily_rest_command.yaml
 #       icon: mdi:transmission-tower
 #       show_in_sidebar: true
 #       filename: dashboards/energy_dashboard.yaml
+#     netwatch-dashboard:
+#       mode: yaml
+#       title: Netwatch
+#       icon: mdi:lan-check
+#       show_in_sidebar: true
+#       filename: dashboards/netwatch_dashboard.yaml
 
 # Optional kannst du weitere Automationen in scripts/ oder zusätzliche Sensoren in sensors/ ablegen.

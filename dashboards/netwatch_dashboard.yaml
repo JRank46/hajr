@@ -1,0 +1,39 @@
+title: Netwatch
+views:
+  - title: DHCP-Überwachung
+    path: netwatch
+    icon: mdi:lan-check
+    cards:
+      - type: entities
+        title: Netwatch (Raspi46)
+        entities:
+          - entity: binary_sensor.netwatch_incident
+            name: Vorfall (letzte 24 h)
+          - entity: sensor.netwatch_incident_count
+            name: Gesicherte Vorfälle
+          - entity: sensor.netwatch_last_incident
+            name: Letzter Vorfall
+          - type: attribute
+            entity: binary_sensor.netwatch_incident
+            attribute: reason
+            name: Grund
+          - type: attribute
+            entity: binary_sensor.netwatch_incident
+            attribute: detail
+            name: Details
+          - type: attribute
+            entity: binary_sensor.netwatch_incident
+            attribute: incident_folder
+            name: Ordner auf dem Raspi
+          - type: attribute
+            entity: binary_sensor.netwatch_incident
+            attribute: path
+            name: Pfad auf dem Raspi
+      - type: markdown
+        title: Dateien abholen
+        content: >-
+          Ordner `{{ state_attr('binary_sensor.netwatch_incident', 'incident_folder') }}` auf dem Windows-PC abholen:
+
+          `scp -r jr46@<raspi-ip>:{{ state_attr('binary_sensor.netwatch_incident', 'path') }}/{{ state_attr('binary_sensor.netwatch_incident', 'incident_folder') }} C:\Logs\`
+
+          Auswertung in Wireshark mit Filter `bootp`.
